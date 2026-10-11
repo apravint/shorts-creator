@@ -123,5 +123,30 @@ VIRAL_TEMPLATES = {
             "cta": "இதில் நீங்கள் இன்று முதல் தொடங்கப்போகும் பழக்கம் எது? பயனுள்ள தகவல்களுக்கு உடனே சப்ஸ்கிரைப் செய்யுங்கள்!",
             "tags": ["#shorts", "#tamil", "#tamilmotivation", "#success", "#wealth", "#goals"]
         }
+    },
+    "tamil": {
+        "en": {
+            "title": "3 Incredible Facts About the Tamil Language",
+            "hook": "Did you know that Tamil is the oldest living classical language in the world, continuously spoken for over 5,000 years?",
+            "points": [
+                "Fact 1: Tamil was the very first Indian language to be printed in a book format, way back in the year 1578.",
+                "Fact 2: It is an official sovereign language in Singapore and Sri Lanka, and is honored on global currencies.",
+                "Fact 3: Tholkappiyam, composed thousands of years ago, formulated comprehensive rules of linguistics and grammar that modern scholars still revere."
+            ],
+            "cta": "Are you proud of our ancient linguistic heritage? Drop a comment below and subscribe!",
+            "tags": ["#shorts", "#tamil", "#tamillanguage", "#history", "#ancientlanguage", "#culture"]
+        },
+        "ta": {
+            "title": "தமிழ் மொழியின் 3 மாபெரும் அதிசயங்கள்",
+            "hook": "ஐயாயிரம் ஆண்டுகளுக்கும் மேலாக இன்றும் உயிர்ப்போடு பேசப்படும் உலகின் மூத்த செம்மொழி நம் தமிழ் மொழி என்று உங்களுக்குத் தெரியுமா?",
+            "points": [
+                "முதல் சிறப்பு: உலகிலேயே முதன்முதலில் புத்தக வடிவில் அச்சிடப்பட்ட முதல் இந்திய மொழி நம் தாய்மொழி தமிழ்தான்.",
+                "இரண்டாவது: சிங்கப்பூர் மற்றும் இலங்கையில் தமிழ் அதிகாரப்பூர்வ ஆட்சி மொழியாகவும், வெளிநாட்டு ரூபாய் நோட்டுகளிலும் கம்பீரமாக அச்சிடப்பட்டுள்ளது.",
+                "மூன்றாவது: இரண்டாயிரத்து ஐந்நூறு ஆண்டுகளுக்கு முன்பே மொழியியலை துல்லியமாக வகுத்த தொல்காப்பிய இலக்கணம் நம்முடையது."
+            ],
+            "cta": "தமிழ் எங்கள் உயிருக்கு நேர் என்று பெருமைப்படும் ஒவ்வொரு தமிழரும் உடனே சப்ஸ்கிரைப் செய்து பகிருங்கள்!",
+            "tags": ["#shorts", "#tamil", "#tamillanguage", "#தமிழ்", "#tamilfacts", "#tamilpride", "#செம்மொழி"]
+        }
     }
 }
+

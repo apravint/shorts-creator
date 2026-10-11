@@ -91,7 +91,9 @@ def get_procedural_template(topic: str, lang: str) -> Dict[str, Any]:
     topic_lower = topic.lower()
     
     category = "space"
-    if any(k in topic_lower for k in ["space", "universe", "planet", "black hole", "galaxy", "விண்வெளி", "கிரகம்", "நிலவு", "சூரியன்"]):
+    if any(k in topic_lower for k in ["tamil", "தமிழ்", "language", "மொழி", "செம்மொழி", "தமிழன்", "இலக்கியம்", "சிறப்பு"]):
+        category = "tamil"
+    elif any(k in topic_lower for k in ["space", "universe", "planet", "black hole", "galaxy", "விண்வெளி", "கிரகம்", "நிலவு", "சூரியன்"]):
         category = "space"
     elif any(k in topic_lower for k in ["psychology", "brain", "mind", "human", "behavior", "உளவியல்", "மனசு", "மூளை", "பயம்"]):
         category = "psychology"
