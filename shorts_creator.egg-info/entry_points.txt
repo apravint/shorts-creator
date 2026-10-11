@@ -1,0 +1,3 @@
+[console_scripts]
+shorts = shorts_creator.cli:main
+shorts-creator = shorts_creator.cli:main

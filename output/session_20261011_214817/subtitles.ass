@@ -1,0 +1,70 @@
+[Script Info]
+Title: Viral YouTube Shorts Subtitles
+ScriptType: v4.00+
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+YCbCr Matrix: None
+PlayResX: 1080
+PlayResY: 1920
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Noto Sans Tamil,72,&H00FFFFFF,&H000000FF,&H00000000,&H90000000,1,0,0,0,100,100,1,0,1,9,4,2,80,80,480,1
+Style: Highlight,Noto Sans Tamil,72,&H0000FFFF,&H000000FF,&H00000000,&H90000000,1,0,0,0,105,105,1,0,1,10,4,2,80,80,480,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.10,0:00:00.82,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}விண்வெளி{\rDefault} {\c&H00FFFFFF&}எவ்வளவு {\c&H00FFFFFF&}மர்மமானது
+Dialogue: 0,0:00:00.82,0:00:01.53,Default,,0,0,0,,{\c&H00FFFFFF&}விண்வெளி {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}எவ்வளவு{\rDefault} {\c&H00FFFFFF&}மர்மமானது
+Dialogue: 0,0:00:01.53,0:00:02.25,Default,,0,0,0,,{\c&H00FFFFFF&}விண்வெளி {\c&H00FFFFFF&}எவ்வளவு {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}மர்மமானது{\rDefault}
+Dialogue: 0,0:00:02.25,0:00:02.96,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}என்று{\rDefault} {\c&H00FFFFFF&}தெரிந்தால், {\c&H00FFFFFF&}நீங்கள்
+Dialogue: 0,0:00:02.96,0:00:03.68,Default,,0,0,0,,{\c&H00FFFFFF&}என்று {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}தெரிந்தால்,{\rDefault} {\c&H00FFFFFF&}நீங்கள்
+Dialogue: 0,0:00:03.68,0:00:04.39,Default,,0,0,0,,{\c&H00FFFFFF&}என்று {\c&H00FFFFFF&}தெரிந்தால், {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}நீங்கள்{\rDefault}
+Dialogue: 0,0:00:04.39,0:00:05.11,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}இரவு{\rDefault} {\c&H00FFFFFF&}வானத்தை {\c&H00FFFFFF&}பார்க்கவே
+Dialogue: 0,0:00:05.11,0:00:05.82,Default,,0,0,0,,{\c&H00FFFFFF&}இரவு {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}வானத்தை{\rDefault} {\c&H00FFFFFF&}பார்க்கவே
+Dialogue: 0,0:00:05.82,0:00:06.54,Default,,0,0,0,,{\c&H00FFFFFF&}இரவு {\c&H00FFFFFF&}வானத்தை {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}பார்க்கவே{\rDefault}
+Dialogue: 0,0:00:06.54,0:00:07.25,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}ஆச்சரியப்படுவீர்கள்!{\rDefault}
+Dialogue: 0,0:00:07.25,0:00:07.97,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}முதல்{\rDefault} {\c&H00FFFFFF&}உண்மை: {\c&H00FFFFFF&}விண்வெளியில்
+Dialogue: 0,0:00:07.97,0:00:08.68,Default,,0,0,0,,{\c&H00FFFFFF&}முதல் {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}உண்மை:{\rDefault} {\c&H00FFFFFF&}விண்வெளியில்
+Dialogue: 0,0:00:08.68,0:00:09.40,Default,,0,0,0,,{\c&H00FFFFFF&}முதல் {\c&H00FFFFFF&}உண்மை: {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}விண்வெளியில்{\rDefault}
+Dialogue: 0,0:00:09.40,0:00:10.12,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}இரண்டு{\rDefault} {\c&H00FFFFFF&}உலோகங்கள் {\c&H00FFFFFF&}தொட்டால்,
+Dialogue: 0,0:00:10.12,0:00:10.83,Default,,0,0,0,,{\c&H00FFFFFF&}இரண்டு {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}உலோகங்கள்{\rDefault} {\c&H00FFFFFF&}தொட்டால்,
+Dialogue: 0,0:00:10.83,0:00:11.55,Default,,0,0,0,,{\c&H00FFFFFF&}இரண்டு {\c&H00FFFFFF&}உலோகங்கள் {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}தொட்டால்,{\rDefault}
+Dialogue: 0,0:00:11.55,0:00:12.26,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}அவை{\rDefault} {\c&H00FFFFFF&}நொடியில் {\c&H00FFFFFF&}நிரந்தரமாக
+Dialogue: 0,0:00:12.26,0:00:12.98,Default,,0,0,0,,{\c&H00FFFFFF&}அவை {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}நொடியில்{\rDefault} {\c&H00FFFFFF&}நிரந்தரமாக
+Dialogue: 0,0:00:12.98,0:00:13.69,Default,,0,0,0,,{\c&H00FFFFFF&}அவை {\c&H00FFFFFF&}நொடியில் {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}நிரந்தரமாக{\rDefault}
+Dialogue: 0,0:00:13.69,0:00:14.41,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}வெல்டிங்{\rDefault} {\c&H00FFFFFF&}ஆகிவிடும்.
+Dialogue: 0,0:00:14.41,0:00:15.12,Default,,0,0,0,,{\c&H00FFFFFF&}வெல்டிங் {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}ஆகிவிடும்.{\rDefault}
+Dialogue: 0,0:00:15.12,0:00:15.84,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}இரண்டாவது:{\rDefault} {\c&H00FFFFFF&}மணிக்கு {\c&H00FFFFFF&}பத்து
+Dialogue: 0,0:00:15.84,0:00:16.55,Default,,0,0,0,,{\c&H00FFFFFF&}இரண்டாவது: {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}மணிக்கு{\rDefault} {\c&H00FFFFFF&}பத்து
+Dialogue: 0,0:00:16.55,0:00:17.27,Default,,0,0,0,,{\c&H00FFFFFF&}இரண்டாவது: {\c&H00FFFFFF&}மணிக்கு {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}பத்து{\rDefault}
+Dialogue: 0,0:00:17.27,0:00:17.99,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}லட்சம்{\rDefault} {\c&H00FFFFFF&}மைல் {\c&H00FFFFFF&}வேகத்தில்
+Dialogue: 0,0:00:17.99,0:00:18.70,Default,,0,0,0,,{\c&H00FFFFFF&}லட்சம் {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}மைல்{\rDefault} {\c&H00FFFFFF&}வேகத்தில்
+Dialogue: 0,0:00:18.70,0:00:19.42,Default,,0,0,0,,{\c&H00FFFFFF&}லட்சம் {\c&H00FFFFFF&}மைல் {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}வேகத்தில்{\rDefault}
+Dialogue: 0,0:00:19.42,0:00:20.13,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}நம்{\rDefault} {\c&H00FFFFFF&}விண்மீன் {\c&H00FFFFFF&}திரளில்
+Dialogue: 0,0:00:20.13,0:00:20.85,Default,,0,0,0,,{\c&H00FFFFFF&}நம் {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}விண்மீன்{\rDefault} {\c&H00FFFFFF&}திரளில்
+Dialogue: 0,0:00:20.85,0:00:21.56,Default,,0,0,0,,{\c&H00FFFFFF&}நம் {\c&H00FFFFFF&}விண்மீன் {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}திரளில்{\rDefault}
+Dialogue: 0,0:00:21.56,0:00:22.28,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}ஒரு{\rDefault} {\c&H00FFFFFF&}கருந்துளை {\c&H00FFFFFF&}சீறிப்பாய்கிறது.
+Dialogue: 0,0:00:22.28,0:00:22.99,Default,,0,0,0,,{\c&H00FFFFFF&}ஒரு {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}கருந்துளை{\rDefault} {\c&H00FFFFFF&}சீறிப்பாய்கிறது.
+Dialogue: 0,0:00:22.99,0:00:23.71,Default,,0,0,0,,{\c&H00FFFFFF&}ஒரு {\c&H00FFFFFF&}கருந்துளை {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}சீறிப்பாய்கிறது.{\rDefault}
+Dialogue: 0,0:00:23.71,0:00:24.42,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}மூன்றாவது:{\rDefault} {\c&H00FFFFFF&}விண்வெளியில் {\c&H00FFFFFF&}காற்று
+Dialogue: 0,0:00:24.42,0:00:25.14,Default,,0,0,0,,{\c&H00FFFFFF&}மூன்றாவது: {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}விண்வெளியில்{\rDefault} {\c&H00FFFFFF&}காற்று
+Dialogue: 0,0:00:25.14,0:00:25.85,Default,,0,0,0,,{\c&H00FFFFFF&}மூன்றாவது: {\c&H00FFFFFF&}விண்வெளியில் {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}காற்று{\rDefault}
+Dialogue: 0,0:00:25.85,0:00:26.57,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}இல்லாததால்,{\rDefault} {\c&H00FFFFFF&}எவ்வளவு {\c&H00FFFFFF&}சத்தமாக
+Dialogue: 0,0:00:26.57,0:00:27.29,Default,,0,0,0,,{\c&H00FFFFFF&}இல்லாததால், {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}எவ்வளவு{\rDefault} {\c&H00FFFFFF&}சத்தமாக
+Dialogue: 0,0:00:27.29,0:00:28.00,Default,,0,0,0,,{\c&H00FFFFFF&}இல்லாததால், {\c&H00FFFFFF&}எவ்வளவு {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}சத்தமாக{\rDefault}
+Dialogue: 0,0:00:28.00,0:00:28.72,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}கத்தினாலும்{\rDefault} {\c&H00FFFFFF&}யாருக்கும் {\c&H00FFFFFF&}கேட்காது.
+Dialogue: 0,0:00:28.72,0:00:29.43,Default,,0,0,0,,{\c&H00FFFFFF&}கத்தினாலும் {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}யாருக்கும்{\rDefault} {\c&H00FFFFFF&}கேட்காது.
+Dialogue: 0,0:00:29.43,0:00:30.15,Default,,0,0,0,,{\c&H00FFFFFF&}கத்தினாலும் {\c&H00FFFFFF&}யாருக்கும் {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}கேட்காது.{\rDefault}
+Dialogue: 0,0:00:30.15,0:00:30.86,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}இதில்{\rDefault} {\c&H00FFFFFF&}உங்களுக்கு {\c&H00FFFFFF&}எந்த
+Dialogue: 0,0:00:30.86,0:00:31.58,Default,,0,0,0,,{\c&H00FFFFFF&}இதில் {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}உங்களுக்கு{\rDefault} {\c&H00FFFFFF&}எந்த
+Dialogue: 0,0:00:31.58,0:00:32.29,Default,,0,0,0,,{\c&H00FFFFFF&}இதில் {\c&H00FFFFFF&}உங்களுக்கு {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}எந்த{\rDefault}
+Dialogue: 0,0:00:32.29,0:00:33.01,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}உண்மை{\rDefault} {\c&H00FFFFFF&}ஆச்சரியமாக {\c&H00FFFFFF&}இருந்தது?
+Dialogue: 0,0:00:33.01,0:00:33.72,Default,,0,0,0,,{\c&H00FFFFFF&}உண்மை {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}ஆச்சரியமாக{\rDefault} {\c&H00FFFFFF&}இருந்தது?
+Dialogue: 0,0:00:33.72,0:00:34.44,Default,,0,0,0,,{\c&H00FFFFFF&}உண்மை {\c&H00FFFFFF&}ஆச்சரியமாக {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}இருந்தது?{\rDefault}
+Dialogue: 0,0:00:34.44,0:00:35.15,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}இதுபோன்ற{\rDefault} {\c&H00FFFFFF&}சுவாரஸ்யமான {\c&H00FFFFFF&}தகவல்களுக்கு
+Dialogue: 0,0:00:35.15,0:00:35.87,Default,,0,0,0,,{\c&H00FFFFFF&}இதுபோன்ற {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}சுவாரஸ்யமான{\rDefault} {\c&H00FFFFFF&}தகவல்களுக்கு
+Dialogue: 0,0:00:35.87,0:00:36.59,Default,,0,0,0,,{\c&H00FFFFFF&}இதுபோன்ற {\c&H00FFFFFF&}சுவாரஸ்யமான {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}தகவல்களுக்கு{\rDefault}
+Dialogue: 0,0:00:36.59,0:00:37.30,Default,,0,0,0,,{\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}உடனே{\rDefault} {\c&H00FFFFFF&}சப்ஸ்கிரைப் {\c&H00FFFFFF&}செய்யுங்கள்!
+Dialogue: 0,0:00:37.30,0:00:38.02,Default,,0,0,0,,{\c&H00FFFFFF&}உடனே {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}சப்ஸ்கிரைப்{\rDefault} {\c&H00FFFFFF&}செய்யுங்கள்!
+Dialogue: 0,0:00:38.02,0:00:38.73,Default,,0,0,0,,{\c&H00FFFFFF&}உடனே {\c&H00FFFFFF&}சப்ஸ்கிரைப் {\c&H0000FFFF&\t(0,100,\fscx112\fscy112)}செய்யுங்கள்!{\rDefault}
