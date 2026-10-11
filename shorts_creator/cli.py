@@ -150,6 +150,7 @@ def run_pipeline(
             subtitle_ass_path=ass_path,
             duration=duration,
             output_path=output_path,
+            topic=script_data.get("title") or topic,
             bg_video_path=bg_video,
             bg_type=bg_type,
             bgm_path=final_bgm
@@ -165,6 +166,8 @@ def run_pipeline(
 [bold]Language:[/bold] {'தமிழ் (Tamil)' if detected_lang == 'ta' else 'English'}
 [bold]Duration:[/bold] {duration:.1f} seconds
 [bold]Voice Engine:[/bold] {tts_data['voice']}
+[bold]Typography:[/bold] Mukta Malar (HarfBuzz Complex Ligature Shaping)
+[bold]Background:[/bold] High-Definition 1080x1920 Vertical Video Loop
 [bold]Audio Mastering:[/bold] [bold magenta]320kbps 48,000Hz (EBU R128 Normalized)[/bold magenta]
 [bold]📱 Android Downloads / Gallery:[/bold] [bold yellow]{final_video}[/bold yellow]
 [bold]Hashtags:[/bold] [dim]{' '.join(script_data['tags'])}[/dim]
@@ -222,11 +225,11 @@ def interactive_wizard():
         default="hormozi"
     )
 
-    # 5. Background Motion Theme
+    # 5. Background Video Theme
     bg_type = Prompt.ask(
-        "Motion Background Theme",
-        choices=["cosmic", "cyber", "fire", "emerald"],
-        default="cosmic"
+        "Background Video Theme",
+        choices=["space", "tech", "cosmic", "cyber", "fire", "emerald"],
+        default="space"
     )
 
     run_pipeline(
@@ -254,7 +257,7 @@ def main():
     create_p.add_argument("--script-file", help="Path to text file containing script")
     create_p.add_argument("--style", choices=["hormozi", "neon-cyan", "neon-green", "fire-red"], default="hormozi", help="Subtitle highlight style")
     create_p.add_argument("--bg-video", help="Path to background video file (auto-crops to 9:16)")
-    create_p.add_argument("--bg-type", choices=["cosmic", "cyber", "fire", "emerald"], default="cosmic", help="Procedural background theme")
+    create_p.add_argument("--bg-type", choices=["space", "tech", "cosmic", "cyber", "fire", "emerald"], default="space", help="Background video theme")
     create_p.add_argument("--bgm", help="Path to custom BGM track")
     create_p.add_argument("--no-bgm", action="store_true", help="Disable background music")
     create_p.add_argument("-o", "--out", help="Output MP4 file path (defaults to Android Download/Shorts folder)")

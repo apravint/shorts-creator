@@ -5,7 +5,6 @@ vibrant neon colors, thick outlines, and full Tamil & English Unicode typography
 """
 
 import os
-import re
 from typing import List, Dict, Any
 
 
@@ -45,12 +44,12 @@ def generate_ass_subtitles(
 ) -> str:
     """
     Generate viral ASS subtitle file synchronized with speech duration.
+    Uses Mukta Malar for guaranteed complex HarfBuzz ligature shaping (Tamil & English).
     """
-    # Font Selection
-    font_name = "Noto Sans Tamil" if lang == "ta" else "Roboto"
+    # Primary font: Mukta Malar has full native Tamil + Latin OpenType GSUB/GPOS tables
+    font_name = "Mukta Malar"
 
     # Color Palettes (BGR Hex in ASS format: &HAABBGGRR)
-    # Highlight colors:
     highlight_color = "&H0000FFFF"  # Neon Yellow
     if style == "neon-cyan":
         highlight_color = "&H00FFFF00"  # Cyan
@@ -59,6 +58,8 @@ def generate_ass_subtitles(
     elif style == "fire-red":
         highlight_color = "&H000045FF"  # Red / Orange
 
+    # Spacing MUST be 0 so Tamil conjunct consonants and vowel marks never split.
+    # Outline 8 + Shadow 4 gives maximum pop over moving video backgrounds.
     ass_header = f"""[Script Info]
 Title: Viral YouTube Shorts Subtitles
 ScriptType: v4.00+
@@ -70,8 +71,7 @@ PlayResY: 1920
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{font_name},72,&H00FFFFFF,&H000000FF,&H00000000,&H90000000,1,0,0,0,100,100,1,0,1,9,4,2,80,80,480,1
-Style: Highlight,{font_name},72,{highlight_color},&H000000FF,&H00000000,&H90000000,1,0,0,0,105,105,1,0,1,10,4,2,80,80,480,1
+Style: Default,{font_name},76,&H00FFFFFF,&H000000FF,&H00000000,&H90000000,1,0,0,0,100,100,0,0,1,8,4,2,80,80,500,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -105,13 +105,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 w_start = burst_start + (idx * word_time_slice)
                 w_end = min(burst_end, w_start + word_time_slice)
                 
-                # Build styled line where active word has highlight color & slight scale
+                # Active word turns highlight color, then switches back to white.
+                # Preserves continuous text shaping without resetting HarfBuzz runs.
                 styled_parts = []
                 for j, w in enumerate(burst):
                     if j == idx:
-                        styled_parts.append(f"{{\\c{highlight_color}&\\t(0,100,\\fscx112\\fscy112)}}{w}{{\\rDefault}}")
+                        styled_parts.append(f"{{\\c{highlight_color}&}}{w}{{\\c&H00FFFFFF&}}")
                     else:
-                        styled_parts.append(f"{{\\c&H00FFFFFF&}}{w}")
+                        styled_parts.append(w)
                 
                 line_text = " ".join(styled_parts)
                 start_str = format_ass_time(w_start)
