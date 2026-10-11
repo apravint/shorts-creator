@@ -39,11 +39,14 @@ def assemble_shorts_video(
     topic: Optional[str] = None,
     bg_video_path: Optional[str] = None,
     bg_type: str = "cosmic",
-    bgm_path: Optional[str] = None
+    bgm_path: Optional[str] = None,
+    progress_bar: bool = True,
+    progress_color: str = "0x00FFFF"
 ) -> str:
     """
     Assemble the complete YouTube Short video using FFmpeg with Studio Broadcast Audio.
-    Includes automatic background video matching and HarfBuzz complex typography shaping.
+    Includes automatic background video matching, HarfBuzz complex typography shaping,
+    and dynamic retention progress bar.
     """
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
@@ -61,6 +64,17 @@ def assemble_shorts_video(
     # ass filter with HarfBuzz complex shaping (shaping=1) and custom fontsdir
     ass_filter = f"ass=filename={ass_escaped}:fontsdir={fonts_dir_escaped}:shaping=1"
 
+    # Retention progress bar along bottom of video
+    extra_filters = []
+    if progress_bar and duration > 0:
+        bar_filter = (
+            f"drawbox=x=0:y=1906:w=iw:h=14:color=black@0.45:t=fill,"
+            f"drawbox=x=0:y=1906:w='min(iw,iw*(t/{duration}))':h=14:color={progress_color}@0.95:t=fill"
+        )
+        extra_filters.append(bar_filter)
+
+    extra_str = ("," + ",".join(extra_filters)) if extra_filters else ""
+
     cmd = ["ffmpeg", "-y"]
 
     # 1. Video Input: Real vertical background video with loop
@@ -70,12 +84,12 @@ def assemble_shorts_video(
             "-i", selected_bg_video,
             "-t", str(duration)
         ])
-        # Auto-center crop to 9:16 vertical 1080x1920 + subtle contrast enhancement + burn subtitles
+        # Auto-center crop to 9:16 vertical 1080x1920 + subtle contrast enhancement + burn subtitles + progress bar
         video_filter = (
             f"scale=1080:1920:force_original_aspect_ratio=increase,"
             f"crop=1080:1920,setsar=1,"
             f"eq=brightness=-0.06:contrast=1.04,"
-            f"{ass_filter}"
+            f"{ass_filter}{extra_str}"
         )
     else:
         bg_filter = build_procedural_background_filter(bg_type, duration)
@@ -83,7 +97,7 @@ def assemble_shorts_video(
             "-f", "lavfi",
             "-i", bg_filter
         ])
-        video_filter = f"{ass_filter}"
+        video_filter = f"{ass_filter}{extra_str}"
 
     # 2. Audio Inputs
     cmd.extend(["-i", voiceover_path])

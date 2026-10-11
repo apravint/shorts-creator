@@ -50,21 +50,38 @@ def get_audio_duration(audio_file: str) -> float:
         return 30.0
 
 
-async def try_edge_tts(
+async def try_edge_tts_with_boundaries(
     text: str,
     voice: str,
     output_audio: str,
     rate: str = "+0%",
     pitch: str = "+0Hz"
-) -> bool:
-    """Attempt synthesis via Edge-TTS."""
+) -> tuple:
+    """
+    Attempt synthesis via Edge-TTS and capture exact millisecond word boundaries.
+    """
+    boundaries: List[Dict[str, Any]] = []
     try:
         communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
-        await communicate.save(output_audio)
-        return os.path.exists(output_audio) and os.path.getsize(output_audio) > 1000
+        with open(output_audio, "wb") as f:
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    f.write(chunk["data"])
+                elif chunk["type"] == "WordBoundary":
+                    # Offset and duration are in 100-nanosecond units (ticks)
+                    start_sec = chunk["offset"] / 10_000_000.0
+                    dur_sec = chunk["duration"] / 10_000_000.0
+                    boundaries.append({
+                        "word": chunk.get("text", "").strip(),
+                        "start": round(start_sec, 3),
+                        "end": round(start_sec + dur_sec, 3),
+                        "duration": round(dur_sec, 3)
+                    })
+        success = os.path.exists(output_audio) and os.path.getsize(output_audio) > 1000
+        return success, boundaries
     except Exception as e:
         print(f"[Info] Edge-TTS notice: {e}. Switching to gTTS fallback.")
-        return False
+        return False, []
 
 
 def synthesize_with_gtts(text: str, lang: str, output_audio: str) -> bool:
@@ -87,14 +104,16 @@ def generate_voiceover(
 ) -> Dict[str, Any]:
     """
     Main entry point for voiceover generation.
-    Generates audio and calculates exact duration.
+    Generates audio, captures exact word timestamps, and calculates duration.
     """
     os.makedirs(output_dir, exist_ok=True)
     voice = custom_voice or get_default_voice(lang)
     audio_path = os.path.join(output_dir, "voiceover.mp3")
 
-    # 1. Try Edge-TTS
-    success = asyncio.run(try_edge_tts(text, voice, audio_path, rate=rate))
+    # 1. Try Edge-TTS with millisecond word boundary capture
+    success, boundaries = asyncio.run(
+        try_edge_tts_with_boundaries(text, voice, audio_path, rate=rate)
+    )
 
     # 2. Seamless Fallback to gTTS if Edge-TTS failed or throttled
     engine_used = "Edge-TTS"
@@ -102,6 +121,7 @@ def generate_voiceover(
         print(f"[Info] Using high-reliability Google TTS for {lang.upper()} voiceover...")
         success = synthesize_with_gtts(text, lang, audio_path)
         engine_used = "gTTS"
+        boundaries = []
 
     if not success:
         raise RuntimeError("Failed to synthesize audio with both Edge-TTS and gTTS engines.")
@@ -112,5 +132,7 @@ def generate_voiceover(
         "audio_path": audio_path,
         "duration": duration,
         "voice": f"{voice} ({engine_used})",
-        "lang": lang
+        "lang": lang,
+        "boundaries": boundaries
     }
+

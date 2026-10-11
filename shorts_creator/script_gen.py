@@ -32,8 +32,8 @@ def clean_script_text(text: str) -> str:
 
 
 def generate_with_gemini(topic: str, lang: str, api_key: str) -> Optional[Dict[str, Any]]:
-    """Generate viral short script using Google Gemini API."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    """Generate viral short script using Google Gemini API with model fallbacks."""
+    models = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
     
     if lang == "ta":
         system_instruction = (
@@ -56,33 +56,79 @@ def generate_with_gemini(topic: str, lang: str, api_key: str) -> Optional[Dict[s
             "Output JSON with keys: title, hook, points (array of 3 strings), cta, tags (array of 5 hashtags)."
         )
 
-    payload = {
-        "contents": [
-            {
-                "parts": [
-                    {"text": f"{system_instruction}\nTopic: {topic}\nRespond ONLY with valid JSON."}
-                ]
+    for model in models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": f"{system_instruction}\nTopic: {topic}\nRespond ONLY with valid JSON."}
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.7
             }
-        ],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "temperature": 0.7
         }
+
+        try:
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=12) as response:
+                res_data = json.loads(response.read().decode("utf-8"))
+                candidate = res_data["candidates"][0]["content"]["parts"][0]["text"]
+                return json.loads(candidate)
+        except Exception:
+            continue
+    return None
+
+
+def generate_with_groq(topic: str, lang: str, api_key: str) -> Optional[Dict[str, Any]]:
+    """Generate viral short script using ultra-fast Groq Llama 3 API."""
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    
+    if lang == "ta":
+        sys_msg = (
+            "You are an expert YouTube Shorts creator for Tamil audience. "
+            "Write a highly engaging 30-second viral script entirely in Tamil (தமிழ்). "
+            "Respond ONLY with a JSON object containing keys: title, hook, points (list of 3 strings), cta, tags (list of 5 hashtags)."
+        )
+    else:
+        sys_msg = (
+            "You are an expert YouTube Shorts creator. "
+            "Write a high-retention 30-second viral script in English. "
+            "Respond ONLY with a JSON object containing keys: title, hook, points (list of 3 strings), cta, tags (list of 5 hashtags)."
+        )
+
+    payload = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [
+            {"role": "system", "content": sys_msg},
+            {"role": "user", "content": f"Topic: {topic}"}
+        ],
+        "response_format": {"type": "json_object"},
+        "temperature": 0.7
     }
 
     try:
         req = urllib.request.Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"}
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
         )
-        with urllib.request.urlopen(req, timeout=15) as response:
+        with urllib.request.urlopen(req, timeout=10) as response:
             res_data = json.loads(response.read().decode("utf-8"))
-            candidate = res_data["candidates"][0]["content"]["parts"][0]["text"]
-            data = json.loads(candidate)
-            return data
+            content = res_data["choices"][0]["message"]["content"]
+            return json.loads(content)
     except Exception as e:
-        print(f"[Warning] Gemini API request failed: {e}. Falling back to procedural engine.")
+        print(f"[Warning] Groq API request failed: {e}")
         return None
 
 
@@ -157,9 +203,13 @@ def prepare_script(
     if not lang:
         lang = detect_language(active_topic)
 
+    groq_key = os.environ.get("GROQ_API_KEY")
     gemini_key = os.environ.get("GEMINI_API_KEY")
     data = None
-    if gemini_key:
+
+    if groq_key:
+        data = generate_with_groq(active_topic, lang, groq_key)
+    if not data and gemini_key:
         data = generate_with_gemini(active_topic, lang, gemini_key)
 
     if not data:

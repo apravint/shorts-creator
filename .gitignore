@@ -1,1 +1,23 @@
+# Output directories
 output/
+output/*
+
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+dist/
+
+# Large downloaded test media (code automatically fetches them from internet)
+assets/backgrounds/*.mp4
+!assets/backgrounds/.gitkeep
+assets/bgm/*.mp3
+!assets/bgm/.gitkeep
+
+# Local editor & environment files
+.env
+.venv/
+env/
+.DS_Store

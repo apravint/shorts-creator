@@ -1,6 +1,7 @@
 README.md
 setup.py
 shorts_creator/__init__.py
+shorts_creator/bg_manager.py
 shorts_creator/bgm_manager.py
 shorts_creator/cli.py
 shorts_creator/script_gen.py
@@ -8,9 +9,18 @@ shorts_creator/subtitle_gen.py
 shorts_creator/templates.py
 shorts_creator/tts_engine.py
 shorts_creator/video_engine.py
+shorts_creator/video_fetcher.py
+shorts_creator/web.py
 shorts_creator.egg-info/PKG-INFO
 shorts_creator.egg-info/SOURCES.txt
 shorts_creator.egg-info/dependency_links.txt
 shorts_creator.egg-info/entry_points.txt
 shorts_creator.egg-info/requires.txt
 shorts_creator.egg-info/top_level.txt
+shorts_creator/film_generator/__init__.py
+shorts_creator/film_generator/animator.py
+shorts_creator/film_generator/art_generator.py
+shorts_creator/film_generator/film_pipeline.py
+shorts_creator/film_generator/movie_compositor.py
+shorts_creator/film_generator/screenplay.py
+shorts_creator/web_static/index.html

@@ -78,6 +78,8 @@ def run_pipeline(
     bg_type: str = "cosmic",
     bgm_path: str = None,
     no_bgm: bool = False,
+    bgm_vibe: str = "ambient",
+    progress_bar: bool = True,
     output_path: str = None
 ):
     print_banner()
@@ -139,8 +141,8 @@ def run_pipeline(
         # Step 4: High-Quality BGM Synthesizer
         final_bgm = None
         if not no_bgm:
-            task_bgm = progress.add_task("[magenta]🎵 Mastering 320kbps BGM & audio ducking...", total=1)
-            final_bgm = prepare_bgm_track(workspace_dir, duration, custom_bgm=bgm_path)
+            task_bgm = progress.add_task(f"[magenta]🎵 Mastering 320kbps BGM ({bgm_vibe}) & audio ducking...", total=1)
+            final_bgm = prepare_bgm_track(workspace_dir, duration, custom_bgm=bgm_path, vibe=bgm_vibe)
             progress.update(task_bgm, completed=1)
 
         # Step 5: FFmpeg Video Compositing & Studio Audio Mastering
@@ -153,7 +155,8 @@ def run_pipeline(
             topic=script_data.get("title") or topic,
             bg_video_path=bg_video,
             bg_type=bg_type,
-            bgm_path=final_bgm
+            bgm_path=final_bgm,
+            progress_bar=progress_bar
         )
         progress.update(task_video, completed=1)
 
@@ -221,7 +224,7 @@ def interactive_wizard():
     # 4. Caption Style
     style = Prompt.ask(
         "Subtitle Color Style",
-        choices=["hormozi", "neon-cyan", "neon-green", "fire-red"],
+        choices=["hormozi", "neon-cyan", "neon-green", "fire-red", "gold", "purple-neon", "white-classic"],
         default="hormozi"
     )
 
@@ -232,13 +235,21 @@ def interactive_wizard():
         default="space"
     )
 
+    # 6. Audio Vibe
+    bgm_vibe = Prompt.ask(
+        "Background Music Vibe",
+        choices=["ambient", "suspense", "cyber"],
+        default="ambient"
+    )
+
     run_pipeline(
         topic=topic,
         custom_script=custom_script,
         lang=lang_choice,
         voice=voice,
         style=style,
-        bg_type=bg_type
+        bg_type=bg_type,
+        bgm_vibe=bgm_vibe
     )
 
 
@@ -255,12 +266,30 @@ def main():
     create_p.add_argument("-v", "--voice", help="Edge-TTS voice identifier")
     create_p.add_argument("-s", "--script", help="Custom script text directly")
     create_p.add_argument("--script-file", help="Path to text file containing script")
-    create_p.add_argument("--style", choices=["hormozi", "neon-cyan", "neon-green", "fire-red"], default="hormozi", help="Subtitle highlight style")
+    create_p.add_argument("--style", choices=["hormozi", "neon-cyan", "neon-green", "fire-red", "gold", "purple-neon", "white-classic"], default="hormozi", help="Subtitle highlight style")
     create_p.add_argument("--bg-video", help="Path to background video file (auto-crops to 9:16)")
     create_p.add_argument("--bg-type", choices=["space", "tech", "cosmic", "cyber", "fire", "emerald"], default="space", help="Background video theme")
     create_p.add_argument("--bgm", help="Path to custom BGM track")
+    create_p.add_argument("--bgm-vibe", choices=["ambient", "suspense", "cyber"], default="ambient", help="Procedural background music vibe")
     create_p.add_argument("--no-bgm", action="store_true", help="Disable background music")
+    create_p.add_argument("--no-progress-bar", action="store_true", help="Disable bottom retention progress bar")
     create_p.add_argument("-o", "--out", help="Output MP4 file path (defaults to Android Download/Shorts folder)")
+
+    # Command: film
+    film_p = subparsers.add_parser("film", help="Generate a multi-scene AI animated film / cinematic movie")
+    film_p.add_argument("-p", "--prompt", help="Story concept / film prompt")
+    film_p.add_argument("-l", "--lang", choices=["en", "ta"], default=None, help="Language (en=English, ta=Tamil)")
+    film_p.add_argument("-s", "--style", choices=["anime_shinkai", "studio_ghibli", "cyberpunk", "pixar_3d", "dark_fantasy", "tamil_epic"], default="anime_shinkai", help="Animation visual style")
+    film_p.add_argument("-a", "--aspect", choices=["16:9", "9:16"], default="16:9", help="Aspect ratio (16:9 Cinema or 9:16 Vertical Reel)")
+    film_p.add_argument("-n", "--scenes", type=int, default=4, help="Number of animated scenes (default: 4)")
+    film_p.add_argument("-v", "--voice", help="Neural voice identifier")
+    film_p.add_argument("--bgm-vibe", choices=["ambient", "suspense", "cyber", "none"], default="ambient", help="Cinematic soundtrack vibe")
+    film_p.add_argument("-o", "--out", help="Output MP4 file path")
+
+    # Command: web
+    web_p = subparsers.add_parser("web", help="Launch ShortsCreator Web Studio on browser")
+    web_p.add_argument("-p", "--port", type=int, default=8080, help="Web server port (default: 8080)")
+    web_p.add_argument("--host", default="0.0.0.0", help="Web server host (default: 0.0.0.0)")
 
     # Command: wizard
     subparsers.add_parser("wizard", help="Interactive step-by-step creation wizard")
@@ -271,7 +300,35 @@ def main():
 
     args = parser.parse_args()
 
-    if args.command in ("wizard", "interactive"):
+    if args.command == "film":
+        from shorts_creator.film_generator import generate_animated_film
+        target_lang = args.lang or detect_language(args.prompt or "")
+        print_banner()
+        console.print(f"[bold cyan]🎬 Generating AI Animated Film in {target_lang.upper()}...[/bold cyan]\n")
+        res = generate_animated_film(
+            prompt=args.prompt,
+            lang=target_lang,
+            style=args.style,
+            aspect_ratio=args.aspect,
+            num_scenes=args.scenes,
+            voice=args.voice,
+            bgm_vibe=args.bgm_vibe,
+            output_path=args.out
+        )
+        console.print()
+        card = f"""[bold green]🎉 Animated Film Created Successfully![/bold green]
+
+[bold]Movie Title:[/bold] {res['title']}
+[bold]Video File:[/bold] [underline cyan]{res['film_path']}[/underline cyan]
+[bold]Style:[/bold] {res['style']}
+[bold]Format:[/bold] {res['aspect_ratio']} Cinema ({res['duration']:.1f}s, {res['scenes_count']} Scenes)
+[bold]Language:[/bold] {'தமிழ் (Tamil)' if res['lang'] == 'ta' else 'English'}
+"""
+        console.print(Panel(card, border_style="green", expand=False))
+    elif args.command == "web":
+        from shorts_creator.web import start_web_server
+        start_web_server(port=args.port, host=args.host)
+    elif args.command in ("wizard", "interactive"):
         interactive_wizard()
     elif args.command == "voices":
         list_voices()
@@ -292,6 +349,8 @@ def main():
             bg_type=args.bg_type,
             bgm_path=args.bgm,
             no_bgm=args.no_bgm,
+            bgm_vibe=args.bgm_vibe,
+            progress_bar=not args.no_progress_bar,
             output_path=args.out
         )
     else:

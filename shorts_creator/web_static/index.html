@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShortsCreator & Film Engine • AI Animated Movie Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mukta+Malar:wght@600;700;800&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090b10;
+      --card-bg: rgba(18, 22, 34, 0.78);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent: #06b6d4;
+      --accent-glow: rgba(6, 182, 212, 0.35);
+      --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%);
+      --film-accent: #f59e0b;
+      --film-gradient: linear-gradient(135deg, #f59e0b 0%, #ef4444 50%, #ec4899 100%);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --radius: 16px;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-heading: 'Outfit', sans-serif;
+      --font-tamil: 'Mukta Malar', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(245, 158, 11, 0.12) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.6) 0px, transparent 100%);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    header {
+      background: rgba(10, 13, 22, 0.88);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      width: 40px;
+      height: 40px;
+      background: var(--accent-gradient);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+
+    .brand-title {
+      font-family: var(--font-heading);
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Mode Switcher in Header */
+    .mode-nav {
+      display: flex;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 4px;
+      border-radius: 14px;
+      border: 1px solid var(--card-border);
+    }
+
+    .mode-tab {
+      padding: 8px 18px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s ease;
+    }
+
+    .mode-tab.active-shorts {
+      background: var(--accent-gradient);
+      color: #fff;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .mode-tab.active-film {
+      background: var(--film-gradient);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+    }
+
+    main {
+      flex: 1;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+      display: grid;
+      grid-template-columns: 1.18fr 0.82fr;
+      gap: 28px;
+    }
+
+    @media (max-width: 1024px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      margin-bottom: 22px;
+    }
+
+    .card-title {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #f1f5f9;
+    }
+
+    .step-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: rgba(6, 182, 212, 0.15);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    .step-badge-film {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: var(--film-accent);
+      color: var(--film-accent);
+    }
+
+    /* Tabs & Buttons */
+    .pill-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .pill-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .pill-btn.active {
+      background: var(--accent-gradient);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .pill-btn.active-film {
+      background: var(--film-gradient);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+    }
+
+    /* Chips */
+    .chip-scroll {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+      margin-bottom: 16px;
+      scrollbar-width: thin;
+    }
+
+    .chip {
+      padding: 7px 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--card-border);
+      border-radius: 999px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .chip:hover {
+      background: rgba(6, 182, 212, 0.1);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* Inputs */
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    input[type="text"], textarea, select {
+      width: 100%;
+      background: rgba(10, 14, 24, 0.8);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #fff;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    input[type="text"]:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+      line-height: 1.5;
+    }
+
+    .btn {
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: #f1f5f9;
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-primary {
+      background: var(--accent-gradient);
+      color: #fff;
+      box-shadow: 0 4px 18px var(--accent-glow);
+    }
+
+    .btn-film {
+      background: var(--film-gradient);
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(245, 158, 11, 0.4);
+    }
+
+    .btn-block {
+      width: 100%;
+    }
+
+    .btn-giant {
+      padding: 18px 28px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      border-radius: 16px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Styles Grid */
+    .style-swatches {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .swatch-card {
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .swatch-card.active {
+      border-color: var(--accent);
+      background: rgba(6, 182, 212, 0.1);
+    }
+
+    .swatch-card.active-film {
+      border-color: var(--film-accent);
+      background: rgba(245, 158, 11, 0.12);
+    }
+
+    /* Storyboard scene card */
+    .scene-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .scene-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--film-accent);
+    }
+
+    .badge-camera {
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      background: rgba(245, 158, 11, 0.15);
+      border-radius: 999px;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fcd34d;
+    }
+
+    /* Simulator */
+    .preview-sticky {
+      position: sticky;
+      top: 80px;
+    }
+
+    .simulator-phone {
+      width: 310px;
+      height: 550px;
+      background: #000;
+      border-radius: 36px;
+      border: 8px solid #1e293b;
+      margin: 0 auto 20px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(6, 182, 212, 0.2);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 20px;
+    }
+
+    .simulator-cinema {
+      width: 100%;
+      height: 290px;
+      background: #000;
+      border-radius: 20px;
+      border: 6px solid #1e293b;
+      margin: 0 auto 20px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(245, 158, 11, 0.2);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 18px;
+    }
+
+    .cinema-bars {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 22px;
+      background: #000;
+      z-index: 4;
+    }
+    .cinema-bar-top { top: 0; }
+    .cinema-bar-bot { bottom: 0; }
+
+    .simulator-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.85) 100%);
+      z-index: 2;
+    }
+
+    .simulator-captions {
+      position: relative;
+      z-index: 5;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .caption-bubble {
+      font-family: var(--font-tamil);
+      font-size: 1.15rem;
+      font-weight: 800;
+      line-height: 1.3;
+      text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 4px 10px rgba(0,0,0,0.8);
+      color: #fff;
+    }
+
+    .caption-highlight {
+      color: #00ffff;
+      animation: pulse 1s infinite alternate;
+      display: inline-block;
+    }
+
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.1); }
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(12px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-box {
+      background: #111827;
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      width: 100%;
+      max-width: 580px;
+      padding: 32px;
+      text-align: center;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+    }
+
+    .spinner {
+      width: 56px;
+      height: 56px;
+      border: 4px solid rgba(6, 182, 212, 0.15);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    .spinner-film {
+      border-color: rgba(245, 158, 11, 0.15);
+      border-top-color: var(--film-accent);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .log-box {
+      background: #090d16;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      padding: 14px;
+      text-align: left;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #a5f3fc;
+      max-height: 160px;
+      overflow-y: auto;
+      margin: 18px 0;
+      white-space: pre-wrap;
+    }
+
+    .video-result-box {
+      margin-top: 16px;
+      display: none;
+    }
+
+    .video-result-box.show {
+      display: block;
+    }
+
+    video {
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      background: #000;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="logo-badge" id="app-badge">⚡</div>
+      <div>
+        <div class="brand-title" id="app-title">ShortsCreator AI</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted);">Termux & Linux Animated Film Studio</div>
+      </div>
+    </div>
+
+    <!-- Mode Switcher -->
+    <div class="mode-nav">
+      <button class="mode-tab active-shorts" id="tab-shorts" onclick="switchAppMode('shorts')">
+        <span>⚡ Viral Shorts (9:16)</span>
+      </button>
+      <button class="mode-tab" id="tab-film" onclick="switchAppMode('film')">
+        <span>🎬 Animated Film Studio</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- LEFT COLUMN: CREATION PIPELINE -->
+    <div>
+      
+      <!-- ==================== MODE 1: SHORTS CREATOR ==================== -->
+      <div id="mode-shorts-container">
+        <!-- Step 1: Language & Topic -->
+        <div class="card">
+          <div class="card-title">
+            <div class="step-badge">1</div>
+            <span>Language & Topic Setup</span>
+          </div>
+
+          <div class="pill-group">
+            <button type="button" class="pill-btn active" id="btn-lang-en" onclick="setLanguage('en')">
+              <span>🌐 English</span>
+            </button>
+            <button type="button" class="pill-btn" id="btn-lang-ta" onclick="setLanguage('ta')">
+              <span>🇮🇳 தமிழ் (Tamil)</span>
+            </button>
+          </div>
+
+          <label>Instant Viral Categories</label>
+          <div class="chip-scroll">
+            <div class="chip" onclick="applyCategory('space')">🪐 Deep Space</div>
+            <div class="chip" onclick="applyCategory('psychology')">🧠 Dark Psychology</div>
+            <div class="chip" onclick="applyCategory('history')">🏛️ Ancient Mysteries</div>
+            <div class="chip" onclick="applyCategory('technology')">🤖 AI & Quantum Tech</div>
+            <div class="chip" onclick="applyCategory('wealth')">💰 Billionaire Habits</div>
+            <div class="chip" onclick="applyCategory('tamil')">🪷 Tamil Heritage</div>
+          </div>
+
+          <div class="input-group">
+            <label>Topic / Prompt</label>
+            <div style="display: flex; gap: 10px;">
+              <input type="text" id="topic-input" placeholder="e.g. 3 Terrifying Facts About Deep Space" value="3 Terrifying Facts About Deep Space">
+              <button class="btn btn-secondary" type="button" onclick="generateScriptFromTopic()" id="btn-generate-script">
+                <span>✨ Generate</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Script Editor -->
+        <div class="card">
+          <div class="card-title">
+            <div class="step-badge">2</div>
+            <span>Viral Script & Hook Review</span>
+          </div>
+
+          <div class="input-group">
+            <label>Short Title</label>
+            <input type="text" id="script-title" placeholder="Short Title">
+          </div>
+
+          <div class="input-group">
+            <label>3-Second Curiosity Hook</label>
+            <textarea id="script-hook" placeholder="The opening hook..."></textarea>
+          </div>
+
+          <div class="input-group">
+            <label>Rapid-Fire Body Points</label>
+            <textarea id="script-points" style="min-height: 100px;"></textarea>
+          </div>
+
+          <div class="input-group">
+            <label>Call-To-Action (CTA)</label>
+            <input type="text" id="script-cta">
+          </div>
+        </div>
+
+        <!-- Step 3: Customization -->
+        <div class="card">
+          <div class="card-title">
+            <div class="step-badge">3</div>
+            <span>Audio, Visuals & Captions</span>
+          </div>
+
+          <div class="grid-2">
+            <div class="input-group">
+              <label>Neural Voice</label>
+              <div style="display: flex; gap: 8px;">
+                <select id="voice-select"></select>
+                <button class="btn btn-secondary" type="button" onclick="playVoicePreview('shorts')">
+                  <span>🔊 Test</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label>Background Video</label>
+              <select id="bg-video-select">
+                <option value="space">Space / Galaxy Flythrough (NASA)</option>
+                <option value="tech">Tech / Cyber FPV Loop</option>
+                <option value="cosmic">Cosmic Animated Gradient</option>
+                <option value="cyber">Cyber Blue Gradient</option>
+                <option value="fire">Fire Red Gradient</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="input-group">
+              <label>Audio & BGM Track</label>
+              <select id="bgm-vibe-select">
+                <option value="ambient">Lush Harmonic Ambient Drone (48kHz)</option>
+                <option value="suspense">Dark Cinematic Tension Pulse</option>
+                <option value="cyber">Cyber Synthwave Pulse</option>
+                <option value="none">No Background Music (Vocal Only)</option>
+              </select>
+            </div>
+
+            <div class="input-group">
+              <label>Shorts Progress Bar</label>
+              <select id="progress-bar-select">
+                <option value="true">Enabled (Dynamic Viewer Retention)</option>
+                <option value="false">Disabled</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Subtitle Styles -->
+          <label>Caption Style & Highlight Color</label>
+          <div class="style-swatches">
+            <div class="swatch-card active" onclick="setSubtitleStyle('hormozi', '#ffff00')">
+              <div style="color: #ffff00; font-weight: 800;">HORMOZI</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">Neon Yellow</div>
+            </div>
+            <div class="swatch-card" onclick="setSubtitleStyle('neon-cyan', '#00ffff')">
+              <div style="color: #00ffff; font-weight: 800;">CYBER</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">Neon Cyan</div>
+            </div>
+            <div class="swatch-card" onclick="setSubtitleStyle('gold', '#ffd700')">
+              <div style="color: #ffd700; font-weight: 800;">ROYAL</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">Pure Gold</div>
+            </div>
+            <div class="swatch-card" onclick="setSubtitleStyle('purple-neon', '#ff00ff')">
+              <div style="color: #ff00ff; font-weight: 800;">NEON</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">Purple</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block btn-giant" type="button" onclick="startRenderShorts()">
+          <span>🎬 Render 1080x1920 YouTube Short</span>
+        </button>
+      </div>
+
+      <!-- ==================== MODE 2: ANIMATED FILM STUDIO ==================== -->
+      <div id="mode-film-container" style="display: none;">
+        <!-- Step 1: Film Concept & Style -->
+        <div class="card">
+          <div class="card-title">
+            <div class="step-badge step-badge-film">1</div>
+            <span>Film Story Concept & Cinematic Style</span>
+          </div>
+
+          <div class="pill-group">
+            <button type="button" class="pill-btn active-film" id="btn-film-lang-en" onclick="setFilmLang('en')">
+              <span>🌐 English Story</span>
+            </button>
+            <button type="button" class="pill-btn" id="btn-film-lang-ta" onclick="setFilmLang('ta')">
+              <span>🇮🇳 தமிழ் கதை (Tamil)</span>
+            </button>
+          </div>
+
+          <label>Pre-Built Movie Themes</label>
+          <div class="chip-scroll">
+            <div class="chip" onclick="applyFilmTheme('cyberpunk')">🌃 Neo Cyberpunk 2099</div>
+            <div class="chip" onclick="applyFilmTheme('tamil_epic')">⚔️ Chola Naval Empire</div>
+            <div class="chip" onclick="applyFilmTheme('studio_ghibli')">🍄 Whispering Star Forest</div>
+          </div>
+
+          <div class="input-group">
+            <label>Movie Story Concept / Prompt</label>
+            <div style="display: flex; gap: 10px;">
+              <input type="text" id="film-prompt-input" placeholder="e.g. A lone cyber detective searching for a lost human soul in Neo Tokyo" value="A lone cyber detective searching for a lost human soul in Neo Tokyo">
+              <button class="btn btn-secondary" type="button" onclick="generateScreenplay()" id="btn-generate-screenplay">
+                <span>✨ Storyboard</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="input-group">
+              <label>Animation Visual Style</label>
+              <select id="film-style-select">
+                <option value="anime_shinkai">Makoto Shinkai Anime (Breathtaking Skies)</option>
+                <option value="studio_ghibli">Studio Ghibli (Hand-Painted Miyazaki)</option>
+                <option value="cyberpunk">Neo Cyberpunk (Neon Rain & Akira)</option>
+                <option value="pixar_3d">3D Pixar / Disney Feature Animation</option>
+                <option value="dark_fantasy">Dark Fantasy Anime (Elden Ring / Berserk)</option>
+                <option value="tamil_epic">Tamil Historical Epic (Chola & Pandya)</option>
+              </select>
+            </div>
+
+            <div class="input-group">
+              <label>Aspect Ratio & Format</label>
+              <select id="film-aspect-select" onchange="updateFilmAspect()">
+                <option value="16:9">16:9 Cinema Widescreen (1920x1080)</option>
+                <option value="9:16">9:16 Vertical Reel Movie (1080x1920)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="input-group">
+              <label>Number of Scenes</label>
+              <select id="film-scenes-count">
+                <option value="3">3 Scenes (Paced ~20s)</option>
+                <option value="4" selected>4 Scenes (Full Story ~30s)</option>
+                <option value="5">5 Scenes (Extended Film ~45s)</option>
+              </select>
+            </div>
+
+            <div class="input-group">
+              <label>Cinematic Soundtrack Mood</label>
+              <select id="film-bgm-vibe">
+                <option value="ambient">Lush Orchestral Ambient Theme</option>
+                <option value="suspense">Dark Tension & Cinematic Sub-Pulse</option>
+                <option value="cyber">Cyberpunk Synthwave Pulse</option>
+                <option value="none">Dialogue Only (No Score)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Multi-Scene Storyboard Review -->
+        <div class="card">
+          <div class="card-title">
+            <div class="step-badge step-badge-film">2</div>
+            <span>Animated Screenplay & Storyboard</span>
+          </div>
+
+          <div id="storyboard-container">
+            <div style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 20px;">
+              Click <b>✨ Storyboard</b> above to generate multi-scene visual keyframes and narration lines.
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-film btn-block btn-giant" type="button" onclick="startRenderFilm()">
+          <span>🎬 Render AI Animated Movie</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: SIMULATOR & VIDEO OUTPUT -->
+    <div>
+      <div class="preview-sticky">
+        <div class="card">
+          <div class="card-title">
+            <span id="simulator-heading">📱 9:16 Shorts Simulator</span>
+          </div>
+
+          <!-- Vertical Simulator for Shorts -->
+          <div id="sim-shorts-frame" class="simulator-phone">
+            <div class="simulator-overlay"></div>
+            <div class="simulator-captions">
+              <div class="caption-bubble" id="sim-text">
+                SPACE IS SO <span class="caption-highlight" id="sim-highlight">TERRIFYING</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Widescreen Cinema Simulator for Film -->
+          <div id="sim-cinema-frame" class="simulator-cinema" style="display: none;">
+            <div class="cinema-bars cinema-bar-top"></div>
+            <div class="cinema-bars cinema-bar-bot"></div>
+            <div class="simulator-overlay"></div>
+            <div class="simulator-captions">
+              <div class="caption-bubble" id="sim-film-text">
+                "In the year 2099, memories were traded in the shadows."
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Result Box -->
+          <div class="video-result-box" id="result-box">
+            <div class="card-title" style="color: #34d399; margin-bottom: 12px;">
+              <span>✅ Video Render Complete!</span>
+            </div>
+            <video id="output-video-player" controls playsinline></video>
+            <div style="margin-top: 14px; display: flex; gap: 10px;">
+              <a id="download-btn" class="btn btn-primary" style="flex: 1;" download>
+                <span>⬇️ Download MP4</span>
+              </a>
+              <button class="btn btn-secondary" onclick="copyFilePath()">
+                <span>📋 Copy Path</span>
+              </button>
+            </div>
+            <div id="file-path-display" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; word-break: break-all;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RENDER PROGRESS MODAL -->
+  <div class="modal-overlay" id="render-modal">
+    <div class="modal-box">
+      <div class="spinner" id="modal-spinner"></div>
+      <h3 style="font-family: var(--font-heading); font-size: 1.4rem; margin-bottom: 8px;" id="modal-status-text">
+        Rendering Video...
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.9rem;" id="modal-sub-text">
+        Processing neural scenes, audio mastering & compositing
+      </p>
+
+      <div class="log-box" id="modal-logs">Initializing video pipeline...</div>
+
+      <button class="btn btn-secondary" id="modal-dismiss-btn" style="display: none;" onclick="closeModal()">
+        <span>Dismiss</span>
+      </button>
+    </div>
+  </div>
+
+  <audio id="audio-preview" style="display: none;"></audio>
+
+  <script>
+    let appMode = 'shorts'; // 'shorts' or 'film'
+    let currentLang = 'en';
+    let filmLang = 'en';
+    let currentStyle = 'hormozi';
+    let lastRenderedPath = '';
+    let currentScreenplay = null;
+
+    const VOICE_DATA = {
+      en: [
+        { id: "en-US-ChristopherNeural", name: "US Male (Christopher - Deep Cinematic)" },
+        { id: "en-IN-PrabhatNeural", name: "Indian English Male (Prabhat)" },
+        { id: "en-US-JennyNeural", name: "US Female (Jenny - Clear Studio)" }
+      ],
+      ta: [
+        { id: "ta-IN-PallaviNeural", name: "தமிழ் பெண் (Pallavi - Expressive)" },
+        { id: "ta-SG-AnbuNeural", name: "தமிழ் ஆண் (Anbu - Crisp & Clear)" }
+      ]
+    };
+
+    function switchAppMode(mode) {
+      appMode = mode;
+      const tabShorts = document.getElementById('tab-shorts');
+      const tabFilm = document.getElementById('tab-film');
+      const shortsBox = document.getElementById('mode-shorts-container');
+      const filmBox = document.getElementById('mode-film-container');
+      const simPhone = document.getElementById('sim-shorts-frame');
+      const simCinema = document.getElementById('sim-cinema-frame');
+      const simHead = document.getElementById('simulator-heading');
+      const badge = document.getElementById('app-badge');
+      const title = document.getElementById('app-title');
+
+      if (mode === 'film') {
+        tabShorts.className = 'mode-tab';
+        tabFilm.className = 'mode-tab active-film';
+        shortsBox.style.display = 'none';
+        filmBox.style.display = 'block';
+        badge.innerText = '🎬';
+        badge.style.background = 'var(--film-gradient)';
+        title.innerText = 'FilmEngine AI';
+        simHead.innerText = '🎬 Cinematic Film Simulator';
+        updateFilmAspect();
+        if (!currentScreenplay) {
+          applyFilmTheme('cyberpunk');
+        }
+      } else {
+        tabFilm.className = 'mode-tab';
+        tabShorts.className = 'mode-tab active-shorts';
+        filmBox.style.display = 'none';
+        shortsBox.style.display = 'block';
+        badge.innerText = '⚡';
+        badge.style.background = 'var(--accent-gradient)';
+        title.innerText = 'ShortsCreator AI';
+        simHead.innerText = '📱 9:16 Shorts Simulator';
+        simCinema.style.display = 'none';
+        simPhone.style.display = 'flex';
+      }
+    }
+
+    function updateFilmAspect() {
+      const aspect = document.getElementById('film-aspect-select').value;
+      const simPhone = document.getElementById('sim-shorts-frame');
+      const simCinema = document.getElementById('sim-cinema-frame');
+
+      if (aspect === '16:9') {
+        simPhone.style.display = 'none';
+        simCinema.style.display = 'flex';
+      } else {
+        simCinema.style.display = 'none';
+        simPhone.style.display = 'flex';
+      }
+    }
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      document.getElementById('btn-lang-en').classList.toggle('active', lang === 'en');
+      document.getElementById('btn-lang-ta').classList.toggle('active', lang === 'ta');
+      updateVoiceOptions('voice-select', lang);
+
+      if (lang === 'ta') {
+        document.getElementById('sim-text').innerHTML = 'விண்வெளி எவ்வளவு <span class="caption-highlight">மர்மமானது!</span>';
+        document.getElementById('topic-input').value = 'விண்வெளியின் மர்மங்கள்';
+      } else {
+        document.getElementById('sim-text').innerHTML = 'SPACE IS SO <span class="caption-highlight">TERRIFYING</span>';
+        document.getElementById('topic-input').value = '3 Terrifying Facts About Deep Space';
+      }
+      generateScriptFromTopic();
+    }
+
+    function setFilmLang(lang) {
+      filmLang = lang;
+      document.getElementById('btn-film-lang-en').classList.toggle('active-film', lang === 'en');
+      document.getElementById('btn-film-lang-ta').classList.toggle('active-film', lang === 'ta');
+      generateScreenplay();
+    }
+
+    function updateVoiceOptions(elemId, lang) {
+      const select = document.getElementById(elemId);
+      if (!select) return;
+      select.innerHTML = '';
+      VOICE_DATA[lang].forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.id;
+        opt.textContent = v.name;
+        select.appendChild(opt);
+      });
+    }
+
+    function applyCategory(cat) {
+      fetch(`/api/template?cat=${cat}&lang=${currentLang}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.title) {
+            document.getElementById('topic-input').value = data.title;
+            document.getElementById('script-title').value = data.title;
+            document.getElementById('script-hook').value = data.hook;
+            document.getElementById('script-points').value = data.points.join('\n');
+            document.getElementById('script-cta').value = data.cta;
+          }
+        });
+    }
+
+    function applyFilmTheme(theme) {
+      const prompts = {
+        cyberpunk: {
+          en: "A rogue android escaping through the neon rain of Neo Tokyo with human memories",
+          ta: "நியோ டோக்கியோவின் நள்ளிரவு மழையில் மனித நினைவுகளுடன் தப்பும் ஒரு விசித்திர ரோபோ"
+        },
+        tamil_epic: {
+          en: "The legendary Chola tiger fleet launching an epic naval expedition across stormy eastern seas",
+          ta: "புலிக்கொடி ஏந்திய மாமன்னர் சோழரின் நாவாய்கள் சீறும் கடற் புயலில் பாய்கின்றன"
+        },
+        studio_ghibli: {
+          en: "A young girl discovering a glowing celestial star spirit inside an ancient mossy forest",
+          ta: "பசுமையான மாயக் காட்டில் உதிர்ந்த நட்சத்திரத்தால் உருவான குட்டி தேவ தேவதையைக் காணும் சிறுமி"
+        }
+      };
+
+      const p = prompts[theme][filmLang];
+      document.getElementById('film-prompt-input').value = p;
+      if (theme === 'tamil_epic') {
+        document.getElementById('film-style-select').value = 'tamil_epic';
+      } else if (theme === 'studio_ghibli') {
+        document.getElementById('film-style-select').value = 'studio_ghibli';
+      } else {
+        document.getElementById('film-style-select').value = 'cyberpunk';
+      }
+      generateScreenplay();
+    }
+
+    function generateScriptFromTopic() {
+      const topic = document.getElementById('topic-input').value.trim();
+      const btn = document.getElementById('btn-generate-script');
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Writing...</span>';
+
+      fetch('/api/generate-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, lang: currentLang })
+      })
+      .then(res => res.json())
+      .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<span>✨ Generate</span>';
+        if (data.success) {
+          document.getElementById('script-title').value = data.title || topic;
+          document.getElementById('script-hook').value = data.hook || '';
+          document.getElementById('script-points').value = (data.points || []).join('\n');
+          document.getElementById('script-cta').value = data.cta || '';
+        }
+      })
+      .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<span>✨ Generate</span>';
+      });
+    }
+
+    function generateScreenplay() {
+      const prompt = document.getElementById('film-prompt-input').value.trim();
+      const style = document.getElementById('film-style-select').value;
+      const numScenes = document.getElementById('film-scenes-count').value;
+      const btn = document.getElementById('btn-generate-screenplay');
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Writing Scenes...</span>';
+
+      fetch('/api/generate-screenplay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, lang: filmLang, style, num_scenes: numScenes })
+      })
+      .then(res => res.json())
+      .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<span>✨ Storyboard</span>';
+        if (data.success && data.screenplay) {
+          currentScreenplay = data.screenplay;
+          renderStoryboard(data.screenplay);
+        }
+      })
+      .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<span>✨ Storyboard</span>';
+      });
+    }
+
+    function renderStoryboard(screenplay) {
+      const container = document.getElementById('storyboard-container');
+      container.innerHTML = '';
+
+      if (!screenplay.scenes || !screenplay.scenes.length) {
+        container.innerHTML = '<div style="color:red;">No scenes found.</div>';
+        return;
+      }
+
+      screenplay.scenes.forEach((sc, i) => {
+        const div = document.createElement('div');
+        div.className = 'scene-card';
+        div.innerHTML = `
+          <div class="scene-header">
+            <span>🎬 Scene ${i+1}: ${sc.setting || 'Setting'}</span>
+            <span class="badge-camera">🎥 ${sc.camera || 'zoom_in'}</span>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">
+            <b>Prompt:</b> ${sc.visual_prompt || sc.setting}
+          </div>
+          <div style="font-size: 0.92rem; color: #fff; font-family: ${filmLang === 'ta' ? 'var(--font-tamil)' : 'inherit'};">
+            <b>Voice:</b> "${sc.narration}"
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      // Update simulator caption
+      if (screenplay.scenes[0]) {
+        document.getElementById('sim-film-text').innerText = `"${screenplay.scenes[0].narration}"`;
+      }
+    }
+
+    function setSubtitleStyle(style, color) {
+      currentStyle = style;
+      document.querySelectorAll('.swatch-card').forEach(el => el.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+    }
+
+    function playVoicePreview(type) {
+      const selectId = 'voice-select';
+      const voice = document.getElementById(selectId).value;
+      const audio = document.getElementById('audio-preview');
+      audio.src = `/api/preview-voice?voice=${encodeURIComponent(voice)}&lang=${type === 'film' ? filmLang : currentLang}`;
+      audio.play().catch(e => console.log(e));
+    }
+
+    function startRenderShorts() {
+      const topic = document.getElementById('script-title').value || document.getElementById('topic-input').value;
+      const hook = document.getElementById('script-hook').value;
+      const points = document.getElementById('script-points').value.split('\n').filter(p => p.trim());
+      const cta = document.getElementById('script-cta').value;
+      const fullText = [hook, ...points, cta].join(' ');
+
+      const payload = {
+        topic: topic,
+        script: fullText,
+        lang: currentLang,
+        voice: document.getElementById('voice-select').value,
+        style: currentStyle,
+        bg_type: document.getElementById('bg-video-select').value,
+        bgm_vibe: document.getElementById('bgm-vibe-select').value,
+        progress_bar: document.getElementById('progress-bar-select').value === 'true'
+      };
+
+      openModal('Synthesizing Viral Short (1080x1920)...', false);
+
+      fetch('/api/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.job_id) pollJob(data.job_id);
+      });
+    }
+
+    function startRenderFilm() {
+      const prompt = document.getElementById('film-prompt-input').value;
+      const style = document.getElementById('film-style-select').value;
+      const aspect = document.getElementById('film-aspect-select').value;
+      const numScenes = document.getElementById('film-scenes-count').value;
+      const bgmVibe = document.getElementById('film-bgm-vibe').value;
+
+      const payload = {
+        prompt: prompt,
+        lang: filmLang,
+        style: style,
+        aspect_ratio: aspect,
+        num_scenes: numScenes,
+        bgm_vibe: bgmVibe
+      };
+
+      openModal('Rendering AI Animated Film...', true);
+
+      fetch('/api/render-film', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.job_id) pollJob(data.job_id);
+      });
+    }
+
+    function openModal(title, isFilm) {
+      const modal = document.getElementById('render-modal');
+      const statusText = document.getElementById('modal-status-text');
+      const logBox = document.getElementById('modal-logs');
+      const spinner = document.getElementById('modal-spinner');
+
+      modal.classList.add('active');
+      statusText.innerText = title;
+      logBox.innerText = 'Initializing rendering engine...\n';
+      document.getElementById('modal-dismiss-btn').style.display = 'none';
+
+      spinner.className = isFilm ? 'spinner spinner-film' : 'spinner';
+    }
+
+    function pollJob(jobId) {
+      const logBox = document.getElementById('modal-logs');
+      const statusText = document.getElementById('modal-status-text');
+      const dismissBtn = document.getElementById('modal-dismiss-btn');
+
+      const interval = setInterval(() => {
+        fetch(`/api/status?job_id=${jobId}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.logs) {
+              logBox.innerText = data.logs.join('\n');
+              logBox.scrollTop = logBox.scrollHeight;
+            }
+            if (data.status === 'completed') {
+              clearInterval(interval);
+              statusText.innerText = 'Render Completed! 🎉';
+              setTimeout(() => {
+                closeModal();
+                showResult(data.video_path, data.video_url);
+              }, 1200);
+            } else if (data.status === 'failed') {
+              clearInterval(interval);
+              statusText.innerText = 'Render Encountered Error';
+              dismissBtn.style.display = 'inline-flex';
+            }
+          })
+          .catch(() => {
+            clearInterval(interval);
+            dismissBtn.style.display = 'inline-flex';
+          });
+      }, 1500);
+    }
+
+    function closeModal() {
+      document.getElementById('render-modal').classList.remove('active');
+    }
+
+    function showResult(path, url) {
+      lastRenderedPath = path;
+      const box = document.getElementById('result-box');
+      const video = document.getElementById('output-video-player');
+      const dl = document.getElementById('download-btn');
+      const pathDisp = document.getElementById('file-path-display');
+
+      video.src = url;
+      dl.href = url;
+      pathDisp.innerText = 'File: ' + path;
+      box.classList.add('show');
+      box.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function copyFilePath() {
+      if (lastRenderedPath) {
+        navigator.clipboard.writeText(lastRenderedPath);
+        alert('File path copied to clipboard:\n' + lastRenderedPath);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setLanguage('en');
+    });
+  </script>
+</body>
+</html>
