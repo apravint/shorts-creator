@@ -59,14 +59,26 @@ def list_voices():
     table = Table(title="🎙️ Verified Working Neural Voices", border_style="cyan")
     table.add_column("Language", style="bold green")
     table.add_column("Gender", style="yellow")
+    table.add_column("Voice Alias", style="bold magenta")
     table.add_column("Voice ID (Edge-TTS)", style="cyan")
     table.add_column("Accent / Dialect", style="white")
 
-    table.add_row("Tamil (தமிழ்)", "Female", "ta-IN-PallaviNeural", "India (Natural & Expressive)")
-    table.add_row("Tamil (தமிழ்)", "Male", "ta-IN-ValluvarNeural", "India (Authoritative & Epic)")
-    table.add_row("Tamil (தமிழ்)", "Male", "ta-SG-AnbuNeural", "Singapore (Crisp & Clear)")
-    table.add_row("English", "Male", "en-US-ChristopherNeural", "US (Deep Broadcast / Viral)")
-    table.add_row("English", "Indian Male", "en-IN-PrabhatNeural", "India (Clear English)")
+    # Tamil Voices
+    table.add_row("Tamil (தமிழ்)", "Female", "pallavi", "ta-IN-PallaviNeural", "India (Natural & Expressive ⭐)")
+    table.add_row("Tamil (தமிழ்)", "Female", "venba", "ta-SG-VenbaNeural", "Singapore (Articulate & Modern)")
+    table.add_row("Tamil (தமிழ்)", "Female", "saranya", "ta-LK-SaranyaNeural", "Sri Lanka (Gentle & Storytelling)")
+    table.add_row("Tamil (தமிழ்)", "Female", "kani", "ta-MY-KaniNeural", "Malaysia (Vibrant & Energetic)")
+    table.add_row("Tamil (தமிழ்)", "Male", "valluvar", "ta-IN-ValluvarNeural", "India (Authoritative & Deep)")
+    table.add_row("Tamil (தமிழ்)", "Male", "anbu", "ta-SG-AnbuNeural", "Singapore (Crisp & Fast)")
+
+    # English Voices
+    table.add_row("English", "Female", "jenny", "en-US-JennyNeural", "US (Friendly & Dynamic ⭐)")
+    table.add_row("English", "Female", "ava", "en-US-AvaNeural", "US (Warm & Conversational)")
+    table.add_row("English", "Female", "emma", "en-US-EmmaNeural", "US (Crisp & Cheerful)")
+    table.add_row("English", "Female", "neerja", "en-IN-NeerjaNeural", "India (Clear Indian English)")
+    table.add_row("English", "Female", "sonia", "en-GB-SoniaNeural", "UK (British Documentary)")
+    table.add_row("English", "Male", "christopher", "en-US-ChristopherNeural", "US (Deep Broadcast / Viral)")
+    table.add_row("English", "Male", "prabhat", "en-IN-PrabhatNeural", "India (Clear English)")
 
     console.print(table)
 
@@ -343,7 +355,7 @@ def main():
     create_p.add_argument("--bgm-vibe", choices=["ambient", "suspense", "cyber", "none"], default="ambient", help="Procedural background music vibe")
     create_p.add_argument("--no-bgm", action="store_true", help="Disable background music")
     create_p.add_argument("--no-progress-bar", action="store_true", help="Disable bottom retention progress bar")
-    create_p.add_argument("--rate", default=None, help="Speech rate / pacing (e.g. +8%, +12%)")
+    create_p.add_argument("--rate", default=None, help="Speech rate / pacing (e.g. +8%%, +12%%)")
     create_p.add_argument("--no-thumb", action="store_true", help="Disable high-CTR thumbnail generation")
     create_p.add_argument("-o", "--out", help="Output MP4 file path")
 

@@ -16,29 +16,51 @@ from gtts import gTTS
 VOICE_MAP = {
     "ta": {
         "female": "ta-IN-PallaviNeural",
+        "female_expressive": "ta-IN-PallaviNeural",
+        "female_articulate": "ta-SG-VenbaNeural",
+        "female_gentle": "ta-LK-SaranyaNeural",
+        "female_lively": "ta-MY-KaniNeural",
         "male": "ta-IN-ValluvarNeural",
         "fast_male": "ta-SG-AnbuNeural",
         "default": "ta-IN-PallaviNeural"
     },
     "en": {
+        "female": "en-US-JennyNeural",
+        "female_warm": "en-US-AvaNeural",
+        "female_crisp": "en-US-EmmaNeural",
+        "female_indian": "en-IN-NeerjaNeural",
+        "female_british": "en-GB-SoniaNeural",
         "male": "en-US-ChristopherNeural",
         "indian_male": "en-IN-PrabhatNeural",
-        "default": "en-US-ChristopherNeural"
+        "default": "en-US-JennyNeural"
     }
 }
 
 VOICE_ALIASES = {
+    # Tamil Female Voices
     "pallavi": "ta-IN-PallaviNeural",
+    "venba": "ta-SG-VenbaNeural",
+    "saranya": "ta-LK-SaranyaNeural",
+    "kani": "ta-MY-KaniNeural",
+    "female_ta": "ta-IN-PallaviNeural",
+    # Tamil Male Voices
     "valluvar": "ta-IN-ValluvarNeural",
     "anbu": "ta-SG-AnbuNeural",
     "surya": "ta-MY-SuryaNeural",
     "kumar": "ta-LK-KumarNeural",
-    "saranya": "ta-LK-SaranyaNeural",
-    "kani": "ta-MY-KaniNeural",
+    # English Female Voices
+    "jenny": "en-US-JennyNeural",
+    "ava": "en-US-AvaNeural",
+    "emma": "en-US-EmmaNeural",
+    "ana": "en-US-AnaNeural",
+    "neerja": "en-IN-NeerjaNeural",
+    "sonia": "en-GB-SoniaNeural",
+    "female_en": "en-US-JennyNeural",
+    # English Male Voices
     "christopher": "en-US-ChristopherNeural",
     "prabhat": "en-IN-PrabhatNeural",
     "guy": "en-US-GuyNeural",
-    "jenny": "en-US-JennyNeural"
+    "brian": "en-US-BrianNeural"
 }
 
 

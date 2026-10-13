@@ -160,6 +160,27 @@ def get_procedural_template(topic: str, lang: str) -> Dict[str, Any]:
     }
 
 
+def split_into_rhythmic_sentences(text: str) -> List[str]:
+    """Splits text into impactful sentence beats, merging tiny fragments so each beat has sufficient duration."""
+    raw = [s.strip() for s in re.split(r'[.!?\n]+', text) if s.strip()]
+    merged = []
+    curr = ""
+    for s in raw:
+        if curr:
+            curr = f"{curr} {s}"
+        else:
+            curr = s
+        if len(curr.split()) >= 4:
+            merged.append(curr.strip())
+            curr = ""
+    if curr:
+        if merged:
+            merged[-1] = f"{merged[-1]} {curr}"
+        else:
+            merged.append(curr)
+    return merged or [text.strip()]
+
+
 def prepare_script(
     topic: Optional[str] = None,
     custom_script: Optional[str] = None,
@@ -177,7 +198,7 @@ def prepare_script(
             raw_text = f.read().strip()
         detected = detect_language(raw_text)
         cleaned = clean_script_text(raw_text)
-        sentences = [s.strip() for s in re.split(r'[.!?]+', cleaned) if s.strip()]
+        sentences = split_into_rhythmic_sentences(cleaned)
         return {
             "title": topic or ("Tamil Short" if detected == "ta" else "Viral Short"),
             "full_text": cleaned,
@@ -189,7 +210,7 @@ def prepare_script(
     if custom_script:
         detected = detect_language(custom_script)
         cleaned = clean_script_text(custom_script)
-        sentences = [s.strip() for s in re.split(r'[.!?]+', cleaned) if s.strip()]
+        sentences = split_into_rhythmic_sentences(cleaned)
         return {
             "title": topic or ("Tamil Short" if detected == "ta" else "Viral Short"),
             "full_text": cleaned,
