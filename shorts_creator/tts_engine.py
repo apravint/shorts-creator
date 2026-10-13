@@ -22,17 +22,46 @@ VOICE_MAP = {
         "female_lively": "ta-MY-KaniNeural",
         "male": "ta-IN-ValluvarNeural",
         "fast_male": "ta-SG-AnbuNeural",
+        "male_malaysia": "ta-MY-SuryaNeural",
+        "male_lanka": "ta-LK-KumarNeural",
         "default": "ta-IN-PallaviNeural"
     },
     "en": {
         "female": "en-US-JennyNeural",
         "female_warm": "en-US-AvaNeural",
+        "female_copilot": "en-US-AvaMultilingualNeural",
         "female_crisp": "en-US-EmmaNeural",
-        "female_indian": "en-IN-NeerjaNeural",
+        "female_news": "en-US-AriaNeural",
+        "female_story": "en-US-AnaNeural",
+        "female_indian": "en-IN-NeerjaExpressiveNeural",
         "female_british": "en-GB-SoniaNeural",
+        "female_aussie": "en-AU-NatashaNeural",
         "male": "en-US-ChristopherNeural",
+        "male_copilot": "en-US-AndrewMultilingualNeural",
+        "male_casual": "en-US-BrianMultilingualNeural",
+        "male_passionate": "en-US-GuyNeural",
         "indian_male": "en-IN-PrabhatNeural",
         "default": "en-US-JennyNeural"
+    },
+    "hi": {
+        "female": "hi-IN-SwaraNeural",
+        "male": "hi-IN-MadhurNeural",
+        "default": "hi-IN-SwaraNeural"
+    },
+    "te": {
+        "female": "te-IN-ShrutiNeural",
+        "male": "te-IN-MohanNeural",
+        "default": "te-IN-ShrutiNeural"
+    },
+    "ml": {
+        "female": "ml-IN-SobhanaNeural",
+        "male": "ml-IN-MidhunNeural",
+        "default": "ml-IN-SobhanaNeural"
+    },
+    "kn": {
+        "female": "kn-IN-SapnaNeural",
+        "male": "kn-IN-GaganNeural",
+        "default": "kn-IN-SapnaNeural"
     }
 }
 
@@ -43,29 +72,63 @@ VOICE_ALIASES = {
     "saranya": "ta-LK-SaranyaNeural",
     "kani": "ta-MY-KaniNeural",
     "female_ta": "ta-IN-PallaviNeural",
+
     # Tamil Male Voices
     "valluvar": "ta-IN-ValluvarNeural",
     "anbu": "ta-SG-AnbuNeural",
     "surya": "ta-MY-SuryaNeural",
     "kumar": "ta-LK-KumarNeural",
+    "male_ta": "ta-IN-ValluvarNeural",
+
     # English Female Voices
     "jenny": "en-US-JennyNeural",
-    "ava": "en-US-AvaNeural",
-    "emma": "en-US-EmmaNeural",
+    "ava": "en-US-AvaMultilingualNeural",
+    "emma": "en-US-EmmaMultilingualNeural",
+    "aria": "en-US-AriaNeural",
     "ana": "en-US-AnaNeural",
-    "neerja": "en-IN-NeerjaNeural",
+    "michelle": "en-US-MichelleNeural",
+    "neerja": "en-IN-NeerjaExpressiveNeural",
     "sonia": "en-GB-SoniaNeural",
+    "libby": "en-GB-LibbyNeural",
+    "maisie": "en-GB-MaisieNeural",
+    "natasha": "en-AU-NatashaNeural",
+    "clara": "en-CA-ClaraNeural",
     "female_en": "en-US-JennyNeural",
+
     # English Male Voices
+    "andrew": "en-US-AndrewMultilingualNeural",
+    "brian": "en-US-BrianMultilingualNeural",
     "christopher": "en-US-ChristopherNeural",
-    "prabhat": "en-IN-PrabhatNeural",
     "guy": "en-US-GuyNeural",
-    "brian": "en-US-BrianNeural"
+    "eric": "en-US-EricNeural",
+    "roger": "en-US-RogerNeural",
+    "steffan": "en-US-SteffanNeural",
+    "prabhat": "en-IN-PrabhatNeural",
+    "ryan": "en-GB-RyanNeural",
+    "thomas": "en-GB-ThomasNeural",
+    "william": "en-AU-WilliamMultilingualNeural",
+    "male_en": "en-US-ChristopherNeural",
+
+    # Hindi Voices
+    "swara": "hi-IN-SwaraNeural",
+    "madhur": "hi-IN-MadhurNeural",
+
+    # Telugu Voices
+    "shruti": "te-IN-ShrutiNeural",
+    "mohan": "te-IN-MohanNeural",
+
+    # Malayalam Voices
+    "sobhana": "ml-IN-SobhanaNeural",
+    "midhun": "ml-IN-MidhunNeural",
+
+    # Kannada Voices
+    "sapna": "kn-IN-SapnaNeural",
+    "gagan": "kn-IN-GaganNeural"
 }
 
 
 def resolve_voice_identifier(voice_query: Optional[str], lang: str) -> str:
-    """Resolves short voice names to verified Edge-TTS full voice tags."""
+    """Resolves short voice names or aliases to verified Edge-TTS full voice tags."""
     if not voice_query:
         return get_default_voice(lang)
     q = voice_query.strip().lower()
@@ -74,7 +137,10 @@ def resolve_voice_identifier(voice_query: Optional[str], lang: str) -> str:
     for alias, full_v in VOICE_ALIASES.items():
         if alias in q:
             return full_v
-    return voice_query
+    # If already a full Edge-TTS neural tag
+    if "neural" in q:
+        return voice_query.strip()
+    return voice_query.strip()
 
 
 def get_default_voice(lang: str, gender: str = "default") -> str:

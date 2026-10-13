@@ -56,12 +56,12 @@ def get_default_output_dir() -> str:
 
 def list_voices():
     print_banner()
-    table = Table(title="🎙️ Verified Working Neural Voices", border_style="cyan")
+    table = Table(title="🎙️ Verified Working Neural Voices (Tamil, English & Regional)", border_style="cyan")
     table.add_column("Language", style="bold green")
     table.add_column("Gender", style="yellow")
-    table.add_column("Voice Alias", style="bold magenta")
+    table.add_column("Alias (-v)", style="bold magenta")
     table.add_column("Voice ID (Edge-TTS)", style="cyan")
-    table.add_column("Accent / Dialect", style="white")
+    table.add_column("Accent & Tone Description", style="white")
 
     # Tamil Voices
     table.add_row("Tamil (தமிழ்)", "Female", "pallavi", "ta-IN-PallaviNeural", "India (Natural & Expressive ⭐)")
@@ -70,15 +70,33 @@ def list_voices():
     table.add_row("Tamil (தமிழ்)", "Female", "kani", "ta-MY-KaniNeural", "Malaysia (Vibrant & Energetic)")
     table.add_row("Tamil (தமிழ்)", "Male", "valluvar", "ta-IN-ValluvarNeural", "India (Authoritative & Deep)")
     table.add_row("Tamil (தமிழ்)", "Male", "anbu", "ta-SG-AnbuNeural", "Singapore (Crisp & Fast)")
+    table.add_row("Tamil (தமிழ்)", "Male", "surya", "ta-MY-SuryaNeural", "Malaysia (Clear Narrative)")
+    table.add_row("Tamil (தமிழ்)", "Male", "kumar", "ta-LK-KumarNeural", "Sri Lanka (Calm Cadence)")
 
-    # English Voices
-    table.add_row("English", "Female", "jenny", "en-US-JennyNeural", "US (Friendly & Dynamic ⭐)")
-    table.add_row("English", "Female", "ava", "en-US-AvaNeural", "US (Warm & Conversational)")
-    table.add_row("English", "Female", "emma", "en-US-EmmaNeural", "US (Crisp & Cheerful)")
-    table.add_row("English", "Female", "neerja", "en-IN-NeerjaNeural", "India (Clear Indian English)")
+    # English Female Voices
+    table.add_row("English", "Female", "ava", "en-US-AvaMultilingualNeural", "US Copilot (Warm, Expressive ⭐)")
+    table.add_row("English", "Female", "emma", "en-US-EmmaMultilingualNeural", "US Copilot (Cheerful & Clear)")
+    table.add_row("English", "Female", "jenny", "en-US-JennyNeural", "US (Friendly Creator Standard ⭐)")
+    table.add_row("English", "Female", "aria", "en-US-AriaNeural", "US (Confident, News & Audiobooks)")
+    table.add_row("English", "Female", "ana", "en-US-AnaNeural", "US (Cute & Animated Storyteller)")
+    table.add_row("English", "Female", "neerja", "en-IN-NeerjaExpressiveNeural", "India (Clear Indian English)")
     table.add_row("English", "Female", "sonia", "en-GB-SoniaNeural", "UK (British Documentary)")
-    table.add_row("English", "Male", "christopher", "en-US-ChristopherNeural", "US (Deep Broadcast / Viral)")
-    table.add_row("English", "Male", "prabhat", "en-IN-PrabhatNeural", "India (Clear English)")
+    table.add_row("English", "Female", "natasha", "en-AU-NatashaNeural", "Australia (Friendly Accent)")
+
+    # English Male Voices
+    table.add_row("English", "Male", "andrew", "en-US-AndrewMultilingualNeural", "US Copilot (Warm & Authentic ⭐)")
+    table.add_row("English", "Male", "brian", "en-US-BrianMultilingualNeural", "US Copilot (Approachable, Casual)")
+    table.add_row("English", "Male", "christopher", "en-US-ChristopherNeural", "US (Deep Viral Hook Authority)")
+    table.add_row("English", "Male", "guy", "en-US-GuyNeural", "US (Passionate & Dynamic)")
+    table.add_row("English", "Male", "prabhat", "en-IN-PrabhatNeural", "India (Clear Indian English)")
+    table.add_row("English", "Male", "ryan", "en-GB-RyanNeural", "UK (Modern British Accent)")
+
+    # Regional Indian Voices
+    table.add_row("Hindi (हिंदी)", "Female", "swara", "hi-IN-SwaraNeural", "India (Warm Hindi)")
+    table.add_row("Hindi (हिंदी)", "Male", "madhur", "hi-IN-MadhurNeural", "India (Clear Hindi)")
+    table.add_row("Telugu (తెలుగు)", "Female", "shruti", "te-IN-ShrutiNeural", "India (Clear Telugu)")
+    table.add_row("Malayalam (മലയാളം)", "Female", "sobhana", "ml-IN-SobhanaNeural", "India (Clear Malayalam)")
+    table.add_row("Kannada (ಕನ್ನಡ)", "Female", "sapna", "kn-IN-SapnaNeural", "India (Clear Kannada)")
 
     console.print(table)
 
