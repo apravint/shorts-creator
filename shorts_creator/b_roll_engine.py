@@ -212,6 +212,22 @@ def resolve_beat_visual_query(sentence_text: str, global_topic: str = "", beat_i
     if any(k in combined for k in ["வரலாறு", "கோயில்", "சோழர்", "history", "ancient", "temple"]):
         return "ancient magnificent stone temple royal architecture golden hour vertical"
 
+    # 5. Night / Sleep / Bedtime / Peace / Cozy
+    is_night = any(k in combined for k in [
+        "night", "sleep", "sleeping", "dream", "dreams", "bed", "rest", "calm", "moon", "moonlight",
+        "starry", "stars", "good night", "peaceful", "quiet", "breathe", "இரவு", "தூக்கம்", "நிலவு"
+    ])
+    if is_night:
+        night_shots = [
+            "serene starry night sky milky way glowing over quiet mountain lake, peaceful vertical 8k",
+            "cozy aesthetic warm bedroom window soft ambient lamp gentle rain outside, warm glow vertical",
+            "gentle luminous full moon glowing through soft clouds silver reflection, serene 8k vertical",
+            "warm glowing fireplace embers cozy cabin quiet relaxing night, peaceful vertical",
+            "misty quiet pine forest illuminated by soft silver moonlight, ethereal serene vertical 8k",
+            "calm dark ocean waves gently lapping beach under starlight, peaceful night vertical"
+        ]
+        return night_shots[(beat_idx) % len(night_shots)]
+
     # Default fallback
     clean = re.sub(r'[^\w\s]', ' ', text_lower)
     words = [w for w in clean.split() if len(w) > 3][:3]
