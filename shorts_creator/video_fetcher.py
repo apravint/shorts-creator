@@ -1,18 +1,53 @@
 """
-Open-Source Internet Video Harvester & Downloader.
-Automatically searches, fetches, and downloads high-definition copyright-free
-stock videos (720p/1080p MP4) from open-source repositories (Mixkit, Pixabay, Pexels)
-for YouTube Shorts and Animated Films.
+Open-Source Internet Video Harvester & Downloader for ShortsCreator AI.
+Automatically searches, curates, and downloads high-definition copyright-free
+stock videos (720p/1080p MP4) from open-source repositories (Mixkit, Wikimedia Commons, Pixabay, Pexels).
+Features native bilingual Tamil & English entity resolution, anti-noise guards, and smart caching.
 """
 
 import os
 import re
+import json
 import random
 import urllib.parse
 import urllib.request
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Dict, Any
 
 CACHE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets", "backgrounds"))
+USER_AGENT = "ShortsCreatorAI/2.0 (https://github.com/apravint/shorts-creator; apravint@gmail.com)"
+
+# Comprehensive Tamil to English semantic dictionary for video queries
+TAMIL_TO_ENGLISH_MAP = {
+    'சென்னை': 'Chennai',
+    'மெட்ரோ': 'Metro rail',
+    'ரயில்': 'Train railway',
+    'தமிழ்நாடு': 'Tamil Nadu',
+    'இந்தியா': 'India',
+    'விண்வெளி': 'Space galaxy universe',
+    'செயற்கை நுண்ணறிவு': 'AI Artificial Intelligence',
+    'கணினி': 'Computer technology',
+    'இயற்பியல்': 'Physics science',
+    'விஞ்ஞானம்': 'Science technology',
+    'இயற்கை': 'Nature landscape green',
+    'தோல்வி': 'struggle overcome perseverance',
+    'வெற்றி': 'success victory achievement',
+    'விடாமுயற்சி': 'discipline focus workout',
+    'கனவு': 'dreams vision horizon',
+    'எழுச்சி': 'sunrise golden hour morning',
+    'சிகரம்': 'mountain peak summit',
+    'கடல்': 'ocean waves sea',
+    'வானம்': 'sky clouds sunset',
+    'நெருப்பு': 'fire flame burning',
+    'ரோபோ': 'robot futuristic android',
+    'கருந்துளை': 'black hole deep space cosmic',
+    'சூரியன்': 'sun solar flare sunrise'
+}
+
+NEGATIVE_NOISE_TERMS = [
+    "diagram", "newspaper", "book", "document", "stamp", "coin",
+    "statue", "tombstone", "poster", "pamphlet", "receipt", "invoice"
+]
 
 # Verified direct open-source MP4 video URLs as immediate fallbacks
 CURATED_OPEN_VIDEOS = {
@@ -57,7 +92,6 @@ CURATED_OPEN_VIDEOS = {
     ]
 }
 
-# Multilingual Keyword to Category Mapping (English & Tamil)
 KEYWORD_MAPPINGS = {
     "space": [
         "space", "galaxy", "universe", "planet", "stars", "alien", "mars", "moon",
@@ -94,6 +128,27 @@ KEYWORD_MAPPINGS = {
 }
 
 
+def resolve_search_query(text: str) -> str:
+    """Translates Tamil entities to English search anchors and sanitizes query."""
+    if not text:
+        return "cinematic space galaxy"
+
+    # Match Tamil terms
+    matched_en = []
+    for ta_term, en_term in TAMIL_TO_ENGLISH_MAP.items():
+        if ta_term in text:
+            matched_en.append(en_term)
+
+    if matched_en:
+        return " ".join(matched_en[:2])
+
+    clean = re.sub(r'[^\w\s]', ' ', text)
+    words = [w for w in clean.split() if len(w) > 2]
+    stopwords = {'the', 'and', 'for', 'with', 'from', 'about', 'how', 'why', 'what', 'shorts', 'video'}
+    informative = [w for w in words if w.lower() not in stopwords]
+    return " ".join(informative[:3]) if informative else text[:30]
+
+
 def extract_search_category(text: str) -> str:
     """Analyze English and Tamil text to select the best visual category."""
     text_lower = (text or "").lower()
@@ -103,42 +158,68 @@ def extract_search_category(text: str) -> str:
     return "space"
 
 
+def search_wikimedia_videos(query: str) -> List[str]:
+    """Search Wikimedia Commons for open-source HD video files."""
+    clean_q = urllib.parse.quote(f"{query} filetype:video")
+    api_url = (
+        f"https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&"
+        f"gsrsearch={clean_q}&gsrnamespace=6&prop=imageinfo&iiprop=url|mime|size&gsrlimit=10"
+    )
+    headers = {"User-Agent": USER_AGENT}
+    try:
+        req = urllib.request.Request(api_url, headers=headers)
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            pages = data.get("query", {}).get("pages", {})
+            video_urls = []
+            for _, page in pages.items():
+                title = page.get("title", "").lower()
+                if any(noise in title for noise in NEGATIVE_NOISE_TERMS):
+                    continue
+                imageinfo = page.get("imageinfo", [])
+                if imageinfo:
+                    ii = imageinfo[0]
+                    mime = ii.get("mime", "")
+                    url = ii.get("url", "")
+                    if (mime.startswith("video/") or url.endswith((".mp4", ".webm"))) and url:
+                        video_urls.append(url)
+            return video_urls
+    except Exception:
+        return []
+
+
 def scrape_mixkit_video_urls(category: str) -> List[str]:
     """Scrape fresh open-source MP4 URLs from Mixkit."""
     clean_cat = category.lower().strip().replace(" ", "-")
     url = f"https://mixkit.co/free-stock-video/{urllib.parse.quote(clean_cat)}/"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-    }
+    headers = {"User-Agent": USER_AGENT}
     try:
         req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=8) as resp:
             html = resp.read().decode("utf-8")
-            # Extract HD MP4 URLs
             urls = list(set(re.findall(r'https://assets\.mixkit\.co/videos/\d+/\d+-(?:720|1080)\.mp4', html)))
             if urls:
                 return urls
-            # Fallback to any mixkit MP4s
             urls = list(set(re.findall(r'https://assets\.mixkit\.co/videos/[^\"]+\.mp4', html)))
             return urls
-    except Exception as e:
+    except Exception:
         return []
 
 
 def download_video_file(url: str, dest_path: str) -> bool:
     """Download video with user-agent and verify file integrity."""
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {"User-Agent": USER_AGENT}
     try:
         req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=20) as resp:
+        with urllib.request.urlopen(req, timeout=25) as resp:
             content = resp.read()
-            if len(content) > 100000:  # At least 100KB
+            if len(content) > 100000:
                 with open(dest_path, "wb") as f:
                     f.write(content)
                 return True
-    except Exception as e:
-        print(f"[Warning] Failed to download {url}: {e}")
+    except Exception:
+        pass
     return False
 
 
@@ -152,6 +233,7 @@ def get_open_source_video(
     Caches downloads locally in assets/backgrounds.
     """
     os.makedirs(CACHE_DIR, exist_ok=True)
+    resolved_query = resolve_search_query(query_or_topic or "")
     cat = preferred_category or extract_search_category(query_or_topic or "")
 
     # 1. Check local cache first
@@ -161,20 +243,21 @@ def get_open_source_video(
         if f.lower().startswith(cat) and f.lower().endswith((".mp4", ".mov", ".webm"))
     ]
     if cached_candidates:
-        # Check that file has valid size
         valid = [f for f in cached_candidates if os.path.getsize(f) > 500000]
         if valid:
             return random.choice(valid)
 
-    # 2. Scrape fresh video URLs from open-source web
-    print(f"[cyan]🌐 Fetching open-source HD stock video for theme '{cat}' from internet...[/cyan]")
+    # 2. Try Mixkit Scraping
     urls = scrape_mixkit_video_urls(cat)
 
-    # 3. Add curated fallback URLs
+    # 3. Try Wikimedia Commons Video API
+    if not urls and resolved_query:
+        urls = search_wikimedia_videos(resolved_query)
+
+    # 4. Fallback to Curated Open Videos
     if not urls:
         urls = CURATED_OPEN_VIDEOS.get(cat, CURATED_OPEN_VIDEOS["space"])
 
-    # Shuffle for variety
     random.shuffle(urls)
 
     for vid_url in urls[:3]:
@@ -182,10 +265,9 @@ def get_open_source_video(
         dest_path = os.path.join(CACHE_DIR, dest_filename)
         success = download_video_file(vid_url, dest_path)
         if success and os.path.isfile(dest_path):
-            print(f"[green]✅ Downloaded real open-source video: {dest_path} ({os.path.getsize(dest_path)//1024} KB)[/green]")
             return dest_path
 
-    # Fallback to any existing video in CACHE_DIR
+    # Fallback to any valid video in CACHE_DIR
     all_local = [
         os.path.join(CACHE_DIR, f)
         for f in os.listdir(CACHE_DIR)

@@ -712,6 +712,55 @@
             </div>
           </div>
 
+          <div class="grid-2">
+            <div class="input-group">
+              <label>Shotcraft Cinematic Recipe</label>
+              <select id="recipe-select">
+                <option value="">Standard Fast Flow</option>
+                <option value="hero_reveal">Hero Reveal (Slow Push & Rim Light)</option>
+                <option value="speed_ramp">Speed Ramp (Dolly & Slow-Mo Decel)</option>
+                <option value="macro_orbit">Macro Orbit (Ultra Close-Up Drift)</option>
+                <option value="terminal_glitch_scan">Terminal Glitch Scan (Dev Code)</option>
+                <option value="isometric_exploded">Isometric Exploded (3D Schematic)</option>
+                <option value="dutch_angle_tension">Dutch Angle (Chiaroscuro Tension)</option>
+                <option value="split_comparison">Split-Screen Comparison</option>
+                <option value="broll_whip_pan">B-Roll Gentle Transition</option>
+              </select>
+            </div>
+
+            <div class="input-group">
+              <label>Acoustic Ambient Soundscape</label>
+              <select id="ambient-select">
+                <option value="">None (Pure Music & Voice)</option>
+                <option value="rain">Gentle Rain & Subtle Thunder</option>
+                <option value="keyboard">Mechanical Typing Keystrokes</option>
+                <option value="server">Server Room / Tech Datacenter</option>
+                <option value="wind">Subtle Atmospheric Wind / Room Tone</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="input-group">
+              <label>Hollywood Foley Cue</label>
+              <select id="sfx-select">
+                <option value="">None</option>
+                <option value="impact">Cinematic Sub-Bass Impact</option>
+                <option value="whoosh">Fast Camera Whoosh Sweep</option>
+                <option value="telemetry">Futuristic HUD Telemetry Beeps</option>
+                <option value="riser">Escalating Tension Riser</option>
+              </select>
+            </div>
+
+            <div class="input-group">
+              <label>High-CTR Cover Thumbnail</label>
+              <select id="thumb-select">
+                <option value="true">Auto-Generate High-CTR Thumbnail (.png)</option>
+                <option value="false">Skip Thumbnail</option>
+              </select>
+            </div>
+          </div>
+
           <!-- Subtitle Styles -->
           <label>Caption Style & Highlight Color</label>
           <div class="style-swatches">
@@ -1179,7 +1228,11 @@
         style: currentStyle,
         bg_type: document.getElementById('bg-video-select').value,
         bgm_vibe: document.getElementById('bgm-vibe-select').value,
-        progress_bar: document.getElementById('progress-bar-select').value === 'true'
+        progress_bar: document.getElementById('progress-bar-select').value === 'true',
+        recipe: document.getElementById('recipe-select') ? document.getElementById('recipe-select').value : null,
+        ambient: document.getElementById('ambient-select') ? document.getElementById('ambient-select').value : null,
+        sfx: document.getElementById('sfx-select') ? document.getElementById('sfx-select').value : null,
+        thumb: document.getElementById('thumb-select') ? (document.getElementById('thumb-select').value === 'true') : true
       };
 
       openModal('Synthesizing Viral Short (1080x1920)...', false);

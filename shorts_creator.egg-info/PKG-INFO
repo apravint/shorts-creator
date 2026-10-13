@@ -1,12 +1,14 @@
 Metadata-Version: 2.4
 Name: shorts-creator
-Version: 1.1.0
-Summary: Automated AI YouTube Shorts Video Creator (Tamil & English)
+Version: 2.0.0
+Summary: Universal AI Video & YouTube Shorts Creator (Tamil & English)
 Author: Pravin
 Requires-Python: >=3.8
 Requires-Dist: edge-tts>=7.0.0
 Requires-Dist: rich>=13.0.0
 Requires-Dist: gTTS>=2.5.0
+Requires-Dist: pillow>=10.0.0
+Requires-Dist: numpy>=1.24.0
 Dynamic: author
 Dynamic: requires-dist
 Dynamic: requires-python

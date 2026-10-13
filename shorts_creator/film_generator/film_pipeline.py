@@ -1,11 +1,12 @@
 """
-End-to-End AI Animated Film Pipeline.
+End-to-End AI Animated Film Pipeline for ShortsCreator AI.
 Orchestrates:
 1. Multi-scene cinematic screenplay generation (Tamil & English)
 2. Neural character/narrator voice synthesis with speech timing
-3. Unique AI anime/cinematic keyframe art generation
+3. Generative video model hub (Google Veo, Fal Wan 2.1, Replicate Hunyuan, Open Stock, Anime AI)
 4. 2.5D dynamic camera animation per scene (zooms, pans, sweeps)
 5. Multi-scene seamless movie stitching & studio audio mastering
+6. Automatic high-CTR cinematic thumbnail generation
 """
 
 import os
@@ -13,8 +14,6 @@ import re
 import time
 from typing import Dict, Any, Optional, Callable
 from rich.console import Console
-from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from shorts_creator.film_generator.screenplay import get_screenplay, ANIMATION_STYLES
 from shorts_creator.film_generator.art_generator import generate_scene_image
@@ -23,8 +22,9 @@ from shorts_creator.film_generator.movie_compositor import assemble_animated_mov
 from shorts_creator.tts_engine import generate_voiceover
 from shorts_creator.bgm_manager import prepare_bgm_track
 from shorts_creator.cli import get_default_output_dir
-
 from shorts_creator.video_fetcher import get_open_source_video
+from shorts_creator.ai_video import AIVideoHub
+from shorts_creator.thumbnail import generate_thumbnail
 
 console = Console()
 
@@ -38,14 +38,13 @@ def generate_animated_film(
     voice: Optional[str] = None,
     bgm_vibe: str = "ambient",
     video_source: str = "auto",
+    recipe: Optional[str] = None,
     output_path: Optional[str] = None,
     progress_callback: Optional[Callable[[str, float], None]] = None
 ) -> Dict[str, Any]:
     """
     Generate a complete multi-scene animated movie from a prompt or concept.
-    video_source: 'auto' (downloads real open-source moving video or animates neural art),
-                  'stock' (downloads real internet video clips per scene),
-                  'anime_ai' (generates neural anime art and animates camera).
+    video_source: 'auto', 'veo', 'wan2.1', 'hunyuan', 'stock', 'anime_ai'.
     """
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     workspace = os.path.join(os.getcwd(), "output", f"film_session_{timestamp}")
@@ -55,7 +54,7 @@ def generate_animated_film(
         if progress_callback:
             progress_callback(msg, pct)
 
-    notify("Step 1: Writing cinematic animated screenplay...", 0.1)
+    notify("Step 1: Writing cinematic screenplay...", 0.1)
 
     # 1. Screenplay
     screenplay = get_screenplay(prompt, lang=lang, style_key=style, num_scenes=num_scenes)
@@ -96,7 +95,7 @@ def generate_animated_film(
 
     total_duration = current_time
 
-    # 3. Generate Scene Videos (Real Moving Video from Internet + AI Animation)
+    # 3. Generate Scene Videos
     scene_videos = []
     width, height = (1920, 1080) if aspect_ratio == "16:9" else (1080, 1920)
 
@@ -107,15 +106,30 @@ def generate_animated_film(
         scene_dir = os.path.join(workspace, f"scene_{idx+1}")
         shot_video_path = os.path.join(scene_dir, "shot.mp4")
         dur = scene_durations[idx]
+        visual_prompt = sc.get("visual_prompt", sc.get("setting", prompt or ""))
 
-        # Check if real moving stock video can be fetched from open-source internet
+        # Check generative video models (Google Veo, Fal Wan, Replicate Hunyuan)
+        gen_backend = video_source.lower().strip()
+        if gen_backend in ("veo", "wan", "wan2.1", "wan2.2", "hunyuan"):
+            gen_out = os.path.join(scene_dir, f"ai_gen_{idx+1}.mp4")
+            AIVideoHub.get_or_synthesize_video(
+                prompt_or_query=visual_prompt,
+                out_path=gen_out,
+                duration=dur,
+                is_shorts=(aspect_ratio == "9:16"),
+                generator_backend=gen_backend
+            )
+            if os.path.isfile(gen_out) and os.path.getsize(gen_out) > 50000:
+                scene_videos.append(gen_out)
+                continue
+
+        # Open-source stock video download
         stock_vid = None
-        if video_source in ("auto", "stock"):
-            search_term = sc.get("setting", "") + " " + sc.get("visual_prompt", "")
+        if gen_backend in ("auto", "stock"):
+            search_term = sc.get("setting", "") + " " + visual_prompt
             stock_vid = get_open_source_video(query_or_topic=search_term)
 
         if stock_vid and os.path.isfile(stock_vid) and os.path.getsize(stock_vid) > 200000:
-            # Crop & trim real moving open-source video to exact scene duration
             crop_filter = f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1,eq=contrast=1.05:brightness=-0.02"
             cmd_clip = [
                 "ffmpeg", "-y",
@@ -137,10 +151,10 @@ def generate_animated_film(
             except Exception:
                 pass
 
-        # Fallback to AI Anime Art + 2.5D Camera Animator
+        # Fallback to AI Keyframe Art + 2.5D Camera Animator
         art_path = os.path.join(scene_dir, "frame.jpg")
         generate_scene_image(
-            prompt=sc.get("visual_prompt", sc.get("setting", prompt or "")),
+            prompt=visual_prompt,
             output_path=art_path,
             style_key=style,
             aspect_ratio=aspect_ratio,
@@ -179,11 +193,26 @@ def generate_animated_film(
         aspect_ratio=aspect_ratio
     )
 
+    # 6. Generate High-CTR Thumbnail
+    thumb_path = output_path.rsplit(".", 1)[0] + "_thumbnail.png"
+    bullets = [sc.get("setting", "Scene")[:30] for sc in scenes[:3]]
+    try:
+        generate_thumbnail(
+            title=movie_title,
+            output_path=thumb_path,
+            bullets=bullets,
+            is_shorts=(aspect_ratio == "9:16"),
+            badge="★ CINEMATIC MOVIE"
+        )
+    except Exception:
+        thumb_path = None
+
     notify("Animated movie creation complete! 🎉", 1.0)
 
     return {
         "title": movie_title,
         "film_path": final_film,
+        "thumbnail_path": thumb_path,
         "duration": total_duration,
         "scenes_count": len(scenes),
         "style": ANIMATION_STYLES.get(style, {}).get("name", style),

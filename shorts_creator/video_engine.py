@@ -1,20 +1,26 @@
 """
-FFmpeg Video Compositor for YouTube Shorts (9:16 1080x1920).
+FFmpeg Video Compositor for ShortsCreator AI (YouTube Shorts 9:16 & Cinema 2.39:1 / 16:9).
 Combines vertical background video footage, burnt ASS subtitles with HarfBuzz complex shaping,
-studio broadcast vocal mastering (EBU R128 loudness normalization), and ducked BGM.
+Shotcraft recipe optical filters, digital human talking avatar PiP, and multi-track audio
+soundscapes with dynamic sidechain ducking and EBU R128 loudness normalization.
 """
 
 import os
 import subprocess
+from pathlib import Path
 from typing import Optional
+
 from .bg_manager import resolve_background_video
+from .shotcraft import build_recipe_filter
+from .soundscape import SoundscapeEngine
+from .avatar import AvatarEngine
 
 ASSETS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets"))
 FONTS_DIR = os.path.join(ASSETS_DIR, "fonts")
 
 
-def build_procedural_background_filter(bg_type: str, duration: float) -> str:
-    """Fallback FFmpeg filtergraph for vertical 1080x1920 procedural motion background."""
+def build_procedural_background_filter(bg_type: str, duration: float, width: int = 1080, height: int = 1920) -> str:
+    """Fallback FFmpeg filtergraph for procedural motion background."""
     if bg_type in ("cyber", "tech"):
         c0 = "0x090d16"
         c1 = "0x2563eb"
@@ -24,11 +30,14 @@ def build_procedural_background_filter(bg_type: str, duration: float) -> str:
     elif bg_type == "emerald":
         c0 = "0x022c22"
         c1 = "0x059669"
+    elif bg_type == "gold":
+        c0 = "0x1a1505"
+        c1 = "0xd97706"
     else:  # cosmic / default
         c0 = "0x0a0f1d"
         c1 = "0x1e1b4b"
 
-    return f"gradients=s=1080x1920:d={duration}:r=30:c0={c0}:c1={c1}:x0=0:y0=0:x1=1080:y1=1920,vignette=PI/3.2"
+    return f"gradients=s={width}x{height}:d={duration}:r=30:c0={c0}:c1={c1}:x0=0:y0=0:x1={width}:y1={height},vignette=PI/3.2"
 
 
 def assemble_shorts_video(
@@ -41,110 +50,139 @@ def assemble_shorts_video(
     bg_type: str = "cosmic",
     bgm_path: Optional[str] = None,
     progress_bar: bool = True,
-    progress_color: str = "0x00FFFF"
+    progress_color: str = "0x00FFFF",
+    recipe: Optional[str] = None,
+    avatar_img: Optional[str] = None,
+    is_cinema: bool = False,
+    ambient_vibe: Optional[str] = None,
+    sfx_cue: Optional[str] = None
 ) -> str:
     """
-    Assemble the complete YouTube Short video using FFmpeg with Studio Broadcast Audio.
-    Includes automatic background video matching, HarfBuzz complex typography shaping,
-    and dynamic retention progress bar.
+    Assemble the complete short video with studio-grade audio mastering,
+    cinematic optical grading, talking avatar PiP, and HarfBuzz typography.
     """
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    temp_dir = os.path.join(os.path.dirname(output_path), "temp_assembly")
+    os.makedirs(temp_dir, exist_ok=True)
 
-    # Resolve background video (e.g. NASA space galaxy or FPV drone loop)
+    width = 1080
+    height = 1920
+    fps = 30
+
+    # 1. Master Audio with Multi-Layer Soundscape & Sidechain Ducking
+    master_audio_path = os.path.join(temp_dir, "master_audio.aac")
+    SoundscapeEngine.mix_master_soundscape(
+        narration_path=voiceover_path,
+        bg_music_path=bgm_path,
+        output_path=master_audio_path,
+        duration=duration,
+        ambient_vibe=ambient_vibe,
+        sfx_cue=sfx_cue,
+        music_volume=0.16,
+        ambient_volume=0.10,
+        work_dir=temp_dir,
+        use_sidechain=True
+    )
+
+    # 2. Resolve background video
     selected_bg_video = resolve_background_video(
         topic=topic,
         custom_video=bg_video_path,
         theme_hint=bg_type
     )
 
-    # Prepare escaped paths for FFmpeg filtergraph
+    # 3. Subtitle filter with HarfBuzz complex shaping
     ass_escaped = subtitle_ass_path.replace("\\", "/").replace(":", "\\:")
     fonts_dir_escaped = FONTS_DIR.replace("\\", "/").replace(":", "\\:")
-
-    # ass filter with HarfBuzz complex shaping (shaping=1) and custom fontsdir
     ass_filter = f"ass=filename={ass_escaped}:fontsdir={fonts_dir_escaped}:shaping=1"
 
-    # Retention progress bar along bottom of video
+    # 4. Filters & Retention laser progress bar
     extra_filters = []
+
+    # Apply Shotcraft recipe filter if selected
+    recipe_filter = build_recipe_filter(recipe, width=width, height=height, fps=fps, duration=duration) if recipe else None
+
+    # Retention progress bar along bottom
     if progress_bar and duration > 0:
+        bar_y = height - 16
         bar_filter = (
-            f"drawbox=x=0:y=1906:w=iw:h=14:color=black@0.45:t=fill,"
-            f"drawbox=x=0:y=1906:w='min(iw,iw*(t/{duration}))':h=14:color={progress_color}@0.95:t=fill"
+            f"drawbox=x=0:y={bar_y}:w=iw:h=16:color=black@0.45:t=fill,"
+            f"drawbox=x=0:y={bar_y}:w='min(iw,iw*(t/{duration}))':h=16:color={progress_color}@0.95:t=fill"
         )
         extra_filters.append(bar_filter)
+
+    # Cinema 2.39:1 scope overlay if requested
+    if is_cinema:
+        letterbox_h = int((height - (width * 16 / 9)) / 2) if height > width else int((height - (width / 2.39)) / 2)
+        if letterbox_h > 0:
+            extra_filters.append(f"drawbox=x=0:y=0:w=iw:h={letterbox_h}:color=black:t=fill")
+            extra_filters.append(f"drawbox=x=0:y=ih-{letterbox_h}:w=iw:h={letterbox_h}:color=black:t=fill")
 
     extra_str = ("," + ",".join(extra_filters)) if extra_filters else ""
 
     cmd = ["ffmpeg", "-y"]
 
-    # 1. Video Input: Real vertical background video with loop
+    # Video input
     if selected_bg_video and os.path.isfile(selected_bg_video):
         cmd.extend([
             "-stream_loop", "-1",
             "-i", selected_bg_video,
             "-t", str(duration)
         ])
-        # Auto-center crop to 9:16 vertical 1080x1920 + subtle contrast enhancement + burn subtitles + progress bar
-        video_filter = (
-            f"scale=1080:1920:force_original_aspect_ratio=increase,"
-            f"crop=1080:1920,setsar=1,"
-            f"eq=brightness=-0.06:contrast=1.04,"
-            f"{ass_filter}{extra_str}"
+        base_vfilter = (
+            f"scale={width}:{height}:force_original_aspect_ratio=increase,"
+            f"crop={width}:{height},setsar=1,"
+            f"eq=brightness=-0.05:contrast=1.04"
         )
+        if recipe_filter:
+            video_filter = f"{base_vfilter},{recipe_filter},{ass_filter}{extra_str}"
+        else:
+            video_filter = f"{base_vfilter},{ass_filter}{extra_str}"
     else:
-        bg_filter = build_procedural_background_filter(bg_type, duration)
+        bg_filter = build_procedural_background_filter(bg_type, duration, width, height)
         cmd.extend([
             "-f", "lavfi",
             "-i", bg_filter
         ])
         video_filter = f"{ass_filter}{extra_str}"
 
-    # 2. Audio Inputs
-    cmd.extend(["-i", voiceover_path])
-    has_bgm = bgm_path and os.path.isfile(bgm_path)
-    if has_bgm:
-        cmd.extend(["-i", bgm_path])
+    # Master audio input
+    cmd.extend(["-i", master_audio_path])
 
-    # 3. Studio High-Quality Audio Mastering Filter Complex
-    # Voice: High-pass 80Hz (remove mud) + 3.2kHz vocal presence EQ + EBU R128 Loudness Normalization (-16 LUFS)
-    # BGM: Smooth 4kHz low-pass + ducking (-18dB / volume=0.14)
-    # Master: 48,000Hz 320kbps Studio Master
-    if has_bgm:
-        filter_complex = (
-            f"[0:v]{video_filter}[vout];"
-            f"[1:a]highpass=f=80,equalizer=f=3200:t=q:w=1.2:g=2.5,loudnorm=I=-16:TP=-1.5:LRA=10[voice];"
-            f"[2:a]lowpass=f=4000,volume=0.14[bgm];"
-            f"[voice][bgm]amix=inputs=2:duration=first:dropout_transition=2[aout]"
-        )
-        cmd.extend([
-            "-filter_complex", filter_complex,
-            "-map", "[vout]",
-            "-map", "[aout]"
-        ])
-    else:
-        filter_complex = (
-            f"[0:v]{video_filter}[vout];"
-            f"[1:a]highpass=f=80,equalizer=f=3200:t=q:w=1.2:g=2.5,loudnorm=I=-16:TP=-1.5:LRA=10[aout]"
-        )
-        cmd.extend([
-            "-filter_complex", filter_complex,
-            "-map", "[vout]",
-            "-map", "[aout]"
-        ])
+    # Video & Audio mapping
+    temp_rendered = os.path.join(temp_dir, "base_rendered.mp4") if avatar_img else output_path
 
-    # 4. Encoders & High Fidelity Broadcast Settings
     cmd.extend([
+        "-vf", video_filter,
         "-c:v", "libx264",
         "-preset", "fast",
-        "-crf", "20",
+        "-crf", "19",
         "-pix_fmt", "yuv420p",
-        "-c:a", "aac",
-        "-b:a", "320k",
-        "-ar", "48000",
+        "-c:a", "copy",
         "-t", str(duration),
-        output_path
+        temp_rendered
     ])
 
-    print(f"🎬 Rendering YouTube Short ({duration:.1f}s) to {output_path}...")
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
+    # 5. Composite talking avatar PiP if requested
+    if avatar_img and os.path.isfile(avatar_img):
+        avatar_vid = os.path.join(temp_dir, "avatar_talking.mp4")
+        AvatarEngine.create_talking_avatar_video(
+            avatar_img_path=avatar_img,
+            speech_audio_path=voiceover_path,
+            out_video_path=avatar_vid,
+            duration=duration,
+            width=540,
+            height=540,
+            fps=fps
+        )
+        AvatarEngine.overlay_presenter_pip(
+            main_video_path=temp_rendered,
+            avatar_video_path=avatar_vid,
+            output_video_path=output_path,
+            position="bottom_right",
+            pip_size=340
+        )
+
     return output_path

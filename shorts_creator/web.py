@@ -231,6 +231,32 @@ class ShortsWebHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"job_id": job_id}).encode("utf-8"))
             return
 
+        # 5. Developer Codebase Brag API
+        if path == "/api/brag":
+            from shorts_creator.brag import BragHarvester, ViralHookGenerator
+            repo_path_str = payload.get("repo_path", "") or os.getcwd()
+            lang = payload.get("lang", "en")
+            try:
+                info = BragHarvester.inspect_repository(Path(repo_path_str))
+                script_info = BragHarvester.craft_launch_script(info, lang=lang)
+                hooks = ViralHookGenerator.generate_hooks(info.get("name", "Project"), lang=lang)
+                resp = {
+                    "success": True,
+                    "info": info,
+                    "title": script_info["title"],
+                    "script": script_info["script"],
+                    "hooks": hooks
+                }
+            except Exception as e:
+                resp = {"success": False, "error": str(e)}
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_cors_headers()
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
         self.send_error(404, "Not Found")
 
     def serve_file(self, file_path: str, content_type: str):
@@ -279,7 +305,12 @@ def execute_render_job(job_id: str, payload: Dict[str, Any]):
         style = payload.get("style", "hormozi")
         bg_type = payload.get("bg_type", "space")
         bgm_vibe = payload.get("bgm_vibe", "ambient")
-        progress_bar = payload.get("progress_bar", True)
+        recipe = payload.get("recipe")
+        avatar = payload.get("avatar")
+        cinema = payload.get("cinema", False)
+        ambient = payload.get("ambient")
+        sfx = payload.get("sfx")
+        thumb = payload.get("thumb", True)
 
         log("Step 1: Preparing script structure...")
         script_data = prepare_script(topic=topic, custom_script=script, lang=lang)
@@ -320,7 +351,7 @@ def execute_render_job(job_id: str, payload: Dict[str, Any]):
         slug = f"short_{timestamp}"
         out_mp4 = os.path.join(default_dir, f"{slug}.mp4")
 
-        log("Step 5: FFmpeg 1080x1920 vertical compositing & EBU R128 mastering...")
+        log("Step 5: FFmpeg video compositing, Shotcraft recipes, & EBU R128 mastering...")
         assemble_shorts_video(
             voiceover_path=tts_data["audio_path"],
             subtitle_ass_path=ass_path,
@@ -329,12 +360,34 @@ def execute_render_job(job_id: str, payload: Dict[str, Any]):
             topic=topic,
             bg_type=bg_type,
             bgm_path=final_bgm,
-            progress_bar=progress_bar
+            progress_bar=progress_bar,
+            recipe=recipe,
+            avatar_img=avatar,
+            is_cinema=cinema,
+            ambient_vibe=ambient,
+            sfx_cue=sfx
         )
+
+        thumb_path = None
+        if thumb:
+            from shorts_creator.thumbnail import generate_thumbnail
+            thumb_path = out_mp4.rsplit(".", 1)[0] + "_thumbnail.png"
+            try:
+                generate_thumbnail(
+                    title=script_data["title"],
+                    output_path=thumb_path,
+                    bullets=script_data.get("tags", [])[:3] or ["Key Takeaway", "Pro Tip"],
+                    is_shorts=(not cinema),
+                    theme=bg_type
+                )
+                log(f"Generated High-CTR Thumbnail: {thumb_path}")
+            except Exception:
+                thumb_path = None
 
         log(f"Rendering complete! Saved to {out_mp4}")
         job["status"] = "completed"
         job["video_path"] = out_mp4
+        job["thumbnail_path"] = thumb_path
         job["video_url"] = f"/api/video-stream?path={urllib.parse.quote(out_mp4)}"
 
     except Exception as e:
