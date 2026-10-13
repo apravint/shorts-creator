@@ -91,6 +91,7 @@ def run_pipeline(
     sfx: str = None,
     thumb: bool = True,
     generator: str = "auto",
+    rate: str = None,
     output_path: str = None
 ):
     print_banner()
@@ -126,12 +127,14 @@ def run_pipeline(
         progress.update(task_script, completed=1)
 
         # Step 2: High-Quality Voiceover Synthesis
-        task_tts = progress.add_task(f"[green]🎙️ Synthesizing {detected_lang.upper()} voiceover...", total=1)
+        eff_rate = rate or ("+8%" if detected_lang == "ta" else "+0%")
+        task_tts = progress.add_task(f"[green]🎙️ Synthesizing {detected_lang.upper()} voiceover ({eff_rate})...", total=1)
         tts_data = generate_voiceover(
             text=script_data["full_text"],
             lang=detected_lang,
             output_dir=workspace_dir,
-            custom_voice=voice
+            custom_voice=voice,
+            rate=eff_rate
         )
         duration = tts_data["duration"]
         progress.update(task_tts, completed=1)
@@ -340,6 +343,7 @@ def main():
     create_p.add_argument("--bgm-vibe", choices=["ambient", "suspense", "cyber", "none"], default="ambient", help="Procedural background music vibe")
     create_p.add_argument("--no-bgm", action="store_true", help="Disable background music")
     create_p.add_argument("--no-progress-bar", action="store_true", help="Disable bottom retention progress bar")
+    create_p.add_argument("--rate", default=None, help="Speech rate / pacing (e.g. +8%, +12%)")
     create_p.add_argument("--no-thumb", action="store_true", help="Disable high-CTR thumbnail generation")
     create_p.add_argument("-o", "--out", help="Output MP4 file path")
 
@@ -450,6 +454,7 @@ def main():
             sfx=args.sfx,
             thumb=not args.no_thumb,
             generator=args.generator,
+            rate=args.rate,
             output_path=args.out
         )
     else:

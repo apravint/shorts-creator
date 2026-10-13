@@ -126,51 +126,51 @@ def resolve_beat_visual_query(sentence_text: str, global_topic: str = "", beat_i
     ])
 
     if is_motivational:
-        if any(k in text_lower for k in ["தோல்வி", "விழு", "உடைக்க", "இருள்", "தடை", "fail", "broken", "fall", "obstacle", "storm", "struggle"]):
+        if any(k in text_lower for k in ["தோல்வி", "பயப்படாதீங்க", "பயப்படாதீர்கள்", "பயம்", "விழு", "உடைக்க", "இருட்டு", "இருள்", "தடை", "fail", "broken", "fall", "obstacle", "storm", "struggle"]):
             shots = [
-                "dramatic dark storm ocean waves crashing rocks silhouette",
-                "lone determined figure walking through dark foggy rain",
-                "boxer exhausted in shadows catching breath dramatic lighting",
-                "intense warrior silhouette standing against dark stormy sky"
+                "lone determined figure walking through dark foggy rain, dramatic volumetric lighting, cinematic 8k vertical",
+                "intense warrior silhouette standing against dark stormy sky lightning, epic cinematic vertical",
+                "boxer exhausted in shadows catching breath dramatic rim lighting, vertical composition",
+                "dramatic storm ocean waves crashing on dark rocks silhouette, 8k vertical"
             ]
             return shots[(beat_idx) % len(shots)]
 
-        elif any(k in text_lower for k in ["விதை", "விருட்சம்", "முளைத்து", "மண்", "seed", "sprout", "grow", "tree", "plant", "roots"]):
+        elif any(k in text_lower for k in ["விதை", "விருட்சம்", "மரம்", "முளைத்து", "மண்", "விஸ்வரூப", "seed", "sprout", "grow", "tree", "plant", "roots"]):
             shots = [
-                "seedling sprouting green dark rich soil time lapse cinematic",
-                "giant majestic oak tree sunbeams breaking through forest",
-                "golden hour sunrise over mountain forest landscape"
+                "glowing green seedling sprouting from dark rich soil into giant tree, golden sunbeams, cinematic vertical 8k",
+                "giant majestic ancient oak tree sunbeams breaking through forest canopy, fantasy nature photography, vertical",
+                "lush emerald green mountain forest landscape golden hour sunlight, 8k vertical"
             ]
             return shots[(beat_idx) % len(shots)]
 
-        elif any(k in text_lower for k in ["கனவு", "நம்பிக்கை", "பாதை", "horizon", "dream", "vision", "path", "hope"]):
+        elif any(k in text_lower for k in ["கனவு", "கனவுகள்", "நம்பிக்கை", "பாதை", "வானம்", "horizon", "dream", "vision", "path", "hope"]):
             shots = [
-                "lone hiker walking toward distant epic mountain peaks golden hour",
-                "eagle soaring above vast sunrise clouds aerial cinematic",
-                "rock climber standing on mountain ledge looking into vast horizon"
+                "majestic eagle soaring high above golden sunrise clouds and mountain peaks, aerial cinematic 8k vertical",
+                "lone hiker standing on mountain cliff looking into vast infinite golden horizon, cinematic 8k vertical",
+                "rock climber looking up at soaring granite peak in morning light, epic vertical"
             ]
             return shots[(beat_idx) % len(shots)]
 
-        elif any(k in text_lower for k in ["அடி", "தொடங்கு", "துவங்கு", "உழைப்பு", "step", "start", "action", "work", "train"]):
+        elif any(k in text_lower for k in ["அடி", "முன்னாடி", "முன்னேறி", "தொடங்கு", "துவங்கு", "உழைப்பு", "போராடு", "step", "start", "action", "work", "train"]):
             shots = [
-                "sprinter in starting blocks athletic track focused eyes",
-                "running shoes sprinting fast across morning pavement dawn",
-                "athlete training intense workout sweat dramatic gym lighting"
+                "running shoes sprinting fast across morning track, golden hour dust kicking up, dynamic dynamic vertical 8k",
+                "athlete focused runner starting blocks sunrise stadium, intense determination, cinematic vertical",
+                "intense workout warrior training in moody gym dramatic lighting, sweat glistening, vertical"
             ]
             return shots[(beat_idx) % len(shots)]
 
         elif any(k in text_lower for k in ["வெற்றி", "சிகரம்", "எழுந்து", "தலைவணங்கும்", "win", "victory", "champion", "summit", "peak"]):
             shots = [
-                "climber standing on mountain summit sunrise raising hands in victory",
-                "athlete crossing finish line victory golden sunlight",
-                "breathtaking golden mountain peak sunrise volumetric light rays"
+                "triumphant climber standing on snowy mountain summit sunrise raising hands in victory, golden sunlight, cinematic 8k vertical",
+                "champion athlete crossing finish line golden hour stadium, roaring crowd, heroic vertical",
+                "breathtaking majestic mountain peak summit touched by golden first light, volumetric rays, 8k vertical"
             ]
             return shots[(beat_idx) % len(shots)]
         else:
             shots = [
-                "dramatic hero reveal silhouette rising morning dawn",
-                "fire burning torch flame dramatic dark background",
-                "athlete running along ocean beach sunrise waves"
+                "heroic silhouette rising toward brilliant morning dawn, cinematic vertical",
+                "burning golden torch flame in dark cinematic atmosphere, 8k vertical",
+                "athlete running along ocean beach sunrise waves, dynamic action vertical"
             ]
             return shots[(beat_idx) % len(shots)]
 
@@ -181,11 +181,11 @@ def resolve_beat_visual_query(sentence_text: str, global_topic: str = "", beat_i
     ])
     if is_space:
         space_shots = [
-            "deep space galaxy nebula spiral stars cinematic 8k",
-            "supermassive black hole glowing accretion disk gravitational lensing",
-            "futuristic spaceship exploring alien planet orbit cosmic",
-            "mars rover surface red dust landscape sunset",
-            "astronaut floating in deep space earth background sun flare"
+            "deep space galaxy nebula spiral stars cinematic 8k vertical",
+            "supermassive black hole glowing accretion disk gravitational lensing vertical",
+            "futuristic spaceship exploring alien planet orbit cosmic vertical",
+            "mars rover surface red dust landscape sunset vertical",
+            "astronaut floating in deep space earth background sun flare vertical"
         ]
         return space_shots[(beat_idx) % len(space_shots)]
 
@@ -196,26 +196,26 @@ def resolve_beat_visual_query(sentence_text: str, global_topic: str = "", beat_i
     ])
     if is_tech:
         tech_shots = [
-            "futuristic neural network AI brain glowing data connections",
-            "hands typing mechanical keyboard syntax code dark neon desk",
-            "datacenter server racks glowing blue fiber optic cables",
-            "futuristic cyberpunk city skyline flying cars neon rain",
-            "microchip processor circuit board glowing gold data pulses"
+            "futuristic neural network AI brain glowing data connections vertical",
+            "hands typing mechanical keyboard syntax code dark neon desk vertical",
+            "datacenter server racks glowing blue fiber optic cables vertical",
+            "futuristic cyberpunk city skyline flying cars neon rain vertical",
+            "microchip processor circuit board glowing gold data pulses vertical"
         ]
         return tech_shots[(beat_idx) % len(tech_shots)]
 
     # 4. Nature / Ocean / Ancient
     if any(k in combined for k in ["கடல்", "ocean", "sea", "water", "waves"]):
-        return "majestic turquoise ocean giant waves crashing dramatic aerial 4k"
+        return "majestic turquoise ocean giant waves crashing dramatic aerial 4k vertical"
     if any(k in combined for k in ["மலை", "mountain", "peak", "climb"]):
-        return "epic misty mountain range sunrise clouds cinematic 4k"
+        return "epic misty mountain range sunrise clouds cinematic 4k vertical"
     if any(k in combined for k in ["வரலாறு", "கோயில்", "சோழர்", "history", "ancient", "temple"]):
-        return "ancient magnificent stone temple royal architecture golden hour"
+        return "ancient magnificent stone temple royal architecture golden hour vertical"
 
     # Default fallback
     clean = re.sub(r'[^\w\s]', ' ', text_lower)
     words = [w for w in clean.split() if len(w) > 3][:3]
-    return f"{' '.join(words)} cinematic masterpiece 4k" if words else "cinematic documentary landscape 4k"
+    return f"{' '.join(words)} cinematic masterpiece 4k vertical" if words else "cinematic documentary landscape 4k vertical"
 
 
 def download_ai_keyframe_image(prompt: str, out_image_path: Path, width: int = 1080, height: int = 1920) -> bool:
@@ -224,13 +224,13 @@ def download_ai_keyframe_image(prompt: str, out_image_path: Path, width: int = 1
     out_image_path.parent.mkdir(parents=True, exist_ok=True)
 
     seed = random.randint(1000, 999999)
-    clean_p = urllib.parse.quote(f"cinematic photorealistic 8k, {prompt}, masterpiece, 35mm photography, natural lighting")
+    clean_p = urllib.parse.quote(f"cinematic photorealistic 8k vertical video still, {prompt}, dramatic volumetric lighting, 35mm film photography, masterpiece, hyper-detailed, trending on artstation")
     url = f"https://image.pollinations.ai/prompt/{clean_p}?width={width}&height={height}&seed={seed}&nologo=true"
 
     headers = {"User-Agent": USER_AGENT}
     try:
         req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=12) as resp:
+        with urllib.request.urlopen(req, timeout=14) as resp:
             content = resp.read()
             if len(content) > 15000:
                 with open(out_image_path, "wb") as f:
@@ -254,16 +254,15 @@ def render_single_beat_clip(
 ) -> Path:
     """
     Renders an individual beat clip tailored to its exact duration:
-    1. Attempts to find an unused matching open-source video clip (if not forced AI).
-    2. If found, scales & crops to 9:16 vertical and trims to duration.
-    3. If no video is found or already used, generates a high-res AI keyframe and animates it with Ken Burns 2.5D camera movement!
+    1. If visual_mode is 'stock', attempts to find a matching open-source video clip.
+    2. Default: Generates a 100% brand-new, customized AI visual keyframe and animates it with Ken Burns 2.5D camera movement!
     """
     out_video_path = Path(out_video_path)
     out_video_path.parent.mkdir(parents=True, exist_ok=True)
     d_frames = max(30, int(duration * fps))
 
-    # 1. Try real open-source stock video (if allowed by visual_mode)
-    if visual_mode != "ai":
+    # 1. Try real open-source stock video ONLY if explicitly requested
+    if visual_mode == "stock":
         stock_candidate = get_open_source_video(query_or_topic=query)
         if (
             stock_candidate
@@ -274,7 +273,6 @@ def render_single_beat_clip(
             if used_videos is not None:
                 used_videos.add(stock_candidate)
 
-            # Randomize offset slightly so clips don't all start identically
             ss_offset = (beat_idx * 2) % 6
             crop_filter = (
                 f"scale={width}:{height}:force_original_aspect_ratio=increase,"

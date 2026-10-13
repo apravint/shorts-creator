@@ -16,7 +16,8 @@ from gtts import gTTS
 VOICE_MAP = {
     "ta": {
         "female": "ta-IN-PallaviNeural",
-        "male": "ta-SG-AnbuNeural",
+        "male": "ta-IN-ValluvarNeural",
+        "fast_male": "ta-SG-AnbuNeural",
         "default": "ta-IN-PallaviNeural"
     },
     "en": {
@@ -25,6 +26,33 @@ VOICE_MAP = {
         "default": "en-US-ChristopherNeural"
     }
 }
+
+VOICE_ALIASES = {
+    "pallavi": "ta-IN-PallaviNeural",
+    "valluvar": "ta-IN-ValluvarNeural",
+    "anbu": "ta-SG-AnbuNeural",
+    "surya": "ta-MY-SuryaNeural",
+    "kumar": "ta-LK-KumarNeural",
+    "saranya": "ta-LK-SaranyaNeural",
+    "kani": "ta-MY-KaniNeural",
+    "christopher": "en-US-ChristopherNeural",
+    "prabhat": "en-IN-PrabhatNeural",
+    "guy": "en-US-GuyNeural",
+    "jenny": "en-US-JennyNeural"
+}
+
+
+def resolve_voice_identifier(voice_query: Optional[str], lang: str) -> str:
+    """Resolves short voice names to verified Edge-TTS full voice tags."""
+    if not voice_query:
+        return get_default_voice(lang)
+    q = voice_query.strip().lower()
+    if q in VOICE_ALIASES:
+        return VOICE_ALIASES[q]
+    for alias, full_v in VOICE_ALIASES.items():
+        if alias in q:
+            return full_v
+    return voice_query
 
 
 def get_default_voice(lang: str, gender: str = "default") -> str:
@@ -100,19 +128,27 @@ def generate_voiceover(
     lang: str,
     output_dir: str,
     custom_voice: Optional[str] = None,
-    rate: str = "+0%"
+    rate: str = "+0%",
+    pitch: str = "+0Hz"
 ) -> Dict[str, Any]:
     """
     Main entry point for voiceover generation.
     Generates audio, captures exact word timestamps, and calculates duration.
     """
     os.makedirs(output_dir, exist_ok=True)
-    voice = custom_voice or get_default_voice(lang)
+    voice = resolve_voice_identifier(custom_voice, lang)
     audio_path = os.path.join(output_dir, "voiceover.mp3")
+
+    # Automatically enhance pacing and inflection for Tamil
+    eff_rate = rate
+    eff_pitch = pitch
+    if lang == "ta" and (rate == "+0%" or not rate):
+        eff_rate = "+8%"
+        eff_pitch = "+1Hz"
 
     # 1. Try Edge-TTS with millisecond word boundary capture
     success, boundaries = asyncio.run(
-        try_edge_tts_with_boundaries(text, voice, audio_path, rate=rate)
+        try_edge_tts_with_boundaries(text, voice, audio_path, rate=eff_rate, pitch=eff_pitch)
     )
 
     # 2. Seamless Fallback to gTTS if Edge-TTS failed or throttled
