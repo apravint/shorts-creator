@@ -164,6 +164,8 @@ def run_pipeline(
             duration=duration,
             output_path=output_path,
             topic=script_data.get("title") or topic,
+            sentences=script_data.get("sentences", []),
+            boundaries=tts_data.get("boundaries", []),
             bg_video_path=bg_video,
             bg_type=bg_type,
             bgm_path=final_bgm,
@@ -172,7 +174,8 @@ def run_pipeline(
             avatar_img=avatar,
             is_cinema=cinema,
             ambient_vibe=ambient,
-            sfx_cue=sfx
+            sfx_cue=sfx,
+            visual_mode=generator
         )
         progress.update(task_video, completed=1)
 

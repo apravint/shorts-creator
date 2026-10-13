@@ -8,12 +8,13 @@ soundscapes with dynamic sidechain ducking and EBU R128 loudness normalization.
 import os
 import subprocess
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 from .bg_manager import resolve_background_video
 from .shotcraft import build_recipe_filter
 from .soundscape import SoundscapeEngine
 from .avatar import AvatarEngine
+from .b_roll_engine import build_multi_beat_montage
 
 ASSETS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets"))
 FONTS_DIR = os.path.join(ASSETS_DIR, "fonts")
@@ -46,6 +47,8 @@ def assemble_shorts_video(
     duration: float,
     output_path: str,
     topic: Optional[str] = None,
+    sentences: Optional[List[str]] = None,
+    boundaries: Optional[List[Dict[str, Any]]] = None,
     bg_video_path: Optional[str] = None,
     bg_type: str = "cosmic",
     bgm_path: Optional[str] = None,
@@ -55,7 +58,8 @@ def assemble_shorts_video(
     avatar_img: Optional[str] = None,
     is_cinema: bool = False,
     ambient_vibe: Optional[str] = None,
-    sfx_cue: Optional[str] = None
+    sfx_cue: Optional[str] = None,
+    visual_mode: str = "auto"
 ) -> str:
     """
     Assemble the complete short video with studio-grade audio mastering,
@@ -84,12 +88,36 @@ def assemble_shorts_video(
         use_sidechain=True
     )
 
-    # 2. Resolve background video
-    selected_bg_video = resolve_background_video(
-        topic=topic,
-        custom_video=bg_video_path,
-        theme_hint=bg_type
-    )
+    # 2. Build or resolve background video
+    # If sentences are provided and no custom video is forced, build dynamic multi-beat B-roll montage!
+    selected_bg_video = None
+    if bg_video_path and os.path.isfile(bg_video_path):
+        selected_bg_video = bg_video_path
+    elif sentences and len(sentences) >= 1:
+        stitched_montage = Path(temp_dir) / "stitched_broll_montage.mp4"
+        try:
+            build_multi_beat_montage(
+                sentences=sentences,
+                total_duration=duration,
+                workspace_dir=Path(temp_dir),
+                out_stitched_video=stitched_montage,
+                global_topic=topic or "viral short",
+                boundaries=boundaries,
+                width=width,
+                height=height,
+                visual_mode=visual_mode
+            )
+            if stitched_montage.exists() and stitched_montage.stat().st_size > 10000:
+                selected_bg_video = str(stitched_montage)
+        except Exception as e:
+            print(f"[Warning] Multi-beat montage fallback: {e}")
+
+    if not selected_bg_video:
+        selected_bg_video = resolve_background_video(
+            topic=topic,
+            custom_video=bg_video_path,
+            theme_hint=bg_type
+        )
 
     # 3. Subtitle filter with HarfBuzz complex shaping
     ass_escaped = subtitle_ass_path.replace("\\", "/").replace(":", "\\:")
@@ -132,7 +160,7 @@ def assemble_shorts_video(
         base_vfilter = (
             f"scale={width}:{height}:force_original_aspect_ratio=increase,"
             f"crop={width}:{height},setsar=1,"
-            f"eq=brightness=-0.05:contrast=1.04"
+            f"eq=brightness=-0.04:contrast=1.04"
         )
         if recipe_filter:
             video_filter = f"{base_vfilter},{recipe_filter},{ass_filter}{extra_str}"

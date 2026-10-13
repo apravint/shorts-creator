@@ -358,6 +358,8 @@ def execute_render_job(job_id: str, payload: Dict[str, Any]):
             duration=duration,
             output_path=out_mp4,
             topic=topic,
+            sentences=script_data.get("sentences", []),
+            boundaries=tts_data.get("boundaries", []),
             bg_type=bg_type,
             bgm_path=final_bgm,
             progress_bar=progress_bar,
@@ -365,7 +367,8 @@ def execute_render_job(job_id: str, payload: Dict[str, Any]):
             avatar_img=avatar,
             is_cinema=cinema,
             ambient_vibe=ambient,
-            sfx_cue=sfx
+            sfx_cue=sfx,
+            visual_mode=payload.get("generator", "auto")
         )
 
         thumb_path = None
