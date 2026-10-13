@@ -408,6 +408,20 @@ def main():
     # Command: voices
     subparsers.add_parser("voices", help="List verified working Tamil and English voices")
 
+    # Command: exploded
+    exploded_p = subparsers.add_parser(
+        "exploded",
+        help="Generate autonomous 3D CAD exploded-view animation with mechanical Foley sound design (Sundar Pichai / Gemini Argon style)"
+    )
+    exploded_p.add_argument("-p", "--preset", choices=["pixel", "tensor", "quantum", "gpu"], default="pixel", help="Hardware CAD architecture preset")
+    exploded_p.add_argument("-d", "--duration", type=float, default=18.0, help="Animation duration in seconds (default: 18.0)")
+    exploded_p.add_argument("-a", "--aspect", choices=["16:9", "9:16"], default="16:9", help="Aspect ratio (16:9 Cinema or 9:16 Vertical Reel)")
+    exploded_p.add_argument("-s", "--script", help="Optional voiceover narration script text")
+    exploded_p.add_argument("-l", "--lang", choices=["en", "ta"], default="en", help="Narration language")
+    exploded_p.add_argument("-v", "--voice", help="Neural voice identifier")
+    exploded_p.add_argument("--fps", type=int, default=30, help="Render frame rate (default: 30)")
+    exploded_p.add_argument("-o", "--out", help="Output MP4 file path")
+
     args = parser.parse_args()
 
     if args.command == "brag":
@@ -487,6 +501,39 @@ def main():
             rate=args.rate,
             output_path=args.out
         )
+    elif args.command == "exploded":
+        from shorts_creator.exploded_engine import ExplodedCADVideoEngine, PIXEL_TENSOR_HARDWARE_PRESET
+        print_banner()
+        console.print("[bold cyan]🔬 Synthesizing Autonomous 3D CAD Exploded-View Video (Gemini Argon Workflow)...[/bold cyan]\n")
+
+        w, h = (1920, 1080) if args.aspect == "16:9" else (1080, 1920)
+        engine = ExplodedCADVideoEngine(width=w, height=h, fps=args.fps)
+
+        out_dest = args.out
+        if not out_dest:
+            default_dir = get_default_output_dir()
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            out_dest = os.path.join(default_dir, f"{args.preset}_exploded_cad_{ts}.mp4")
+
+        res = engine.generate_exploded_video(
+            output_video_path=out_dest,
+            duration=args.duration,
+            preset=PIXEL_TENSOR_HARDWARE_PRESET,
+            script_text=args.script,
+            voice=args.voice,
+            lang=args.lang
+        )
+
+        console.print()
+        card = f"""[bold green]✨ CAD Exploded-View Video Created Successfully![/bold green]
+
+[bold]Video File:[/bold] [underline cyan]{res['video_path']}[/underline cyan]
+[bold]Companion Blender Script:[/bold] [underline yellow]{res['blender_script']}[/underline yellow]
+[bold]Resolution:[/bold] {res['resolution']} @ {res['fps']}fps ({res['duration']:.1f}s)
+[bold]Hardware Preset:[/bold] {res['preset']}
+[bold]Audio Track:[/bold] Procedural Mechanical Foley (Pneumatics, Stepper Servos, Magnetic Latches, Sub-Bass)
+"""
+        console.print(Panel(card, border_style="cyan", expand=False))
     else:
         if len(sys.argv) == 1:
             interactive_wizard()

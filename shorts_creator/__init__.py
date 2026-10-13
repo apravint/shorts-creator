@@ -17,3 +17,4 @@ from .sfx import SoundEffectsSynthesizer
 from .avatar import AvatarEngine
 from .thumbnail import generate_thumbnail
 from .brag import BragHarvester, ViralHookGenerator
+from .exploded_engine import ExplodedCADVideoEngine, PIXEL_TENSOR_HARDWARE_PRESET

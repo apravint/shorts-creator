@@ -139,3 +139,205 @@ class SoundEffectsSynthesizer:
                 wf.writeframes(struct.pack("<hh", ival, ival))
 
         return out_path
+
+    @staticmethod
+    def generate_servo_motor(out_path: Union[str, Path], duration: float = 1.8, sample_rate: int = 44100) -> Path:
+        """High-precision electric stepper motor and robotic servo hum."""
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        total_samples = int(sample_rate * duration)
+
+        with wave.open(str(out_path), "wb") as wf:
+            wf.setnchannels(2)
+            wf.setsampwidth(2)
+            wf.setframerate(sample_rate)
+
+            for i in range(total_samples):
+                t = i / sample_rate
+                progress = t / duration
+                env = math.sin(math.pi * progress) ** 0.5
+
+                # Stepper motor dual harmonics with PWM frequency modulation
+                base_freq = 190.0 + 35.0 * math.sin(2 * math.pi * 7.0 * t)
+                harm1 = math.sin(2 * math.pi * base_freq * t)
+                harm2 = math.sin(2 * math.pi * (base_freq * 2.8) * t) * 0.35
+                whir = math.sin(2 * math.pi * 1420.0 * t) * 0.12
+
+                val = max(-1.0, min(1.0, (harm1 + harm2 + whir) * env * 0.45))
+                ival = int(val * 32767)
+                wf.writeframes(struct.pack("<hh", ival, ival))
+
+        return out_path
+
+    @staticmethod
+    def generate_pneumatic_slide(out_path: Union[str, Path], duration: float = 2.2, sample_rate: int = 44100) -> Path:
+        """Pressurized pneumatic air release and mechanical piston slide."""
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        total_samples = int(sample_rate * duration)
+
+        with wave.open(str(out_path), "wb") as wf:
+            wf.setnchannels(2)
+            wf.setsampwidth(2)
+            wf.setframerate(sample_rate)
+
+            last_noise = 0.0
+            for i in range(total_samples):
+                t = i / sample_rate
+                progress = t / duration
+                env = math.sin(math.pi * progress) ** 1.5
+
+                # Air hiss filtered noise
+                cutoff_freq = 800.0 + 1200.0 * (1.0 - progress)
+                alpha = max(0.01, min(0.9, (2.0 * math.pi * cutoff_freq) / sample_rate))
+                white = (random.random() * 2.0 - 1.0)
+                last_noise = (1.0 - alpha) * last_noise + alpha * white
+
+                # Low resonance slide tone
+                slide_tone = math.sin(2 * math.pi * (85.0 - 25.0 * progress) * t) * 0.25
+
+                val = max(-1.0, min(1.0, (last_noise * 0.4 + slide_tone) * env * 0.55))
+                ival = int(val * 32767)
+                wf.writeframes(struct.pack("<hh", ival, ival))
+
+        return out_path
+
+    @staticmethod
+    def generate_magnetic_latch(out_path: Union[str, Path], duration: float = 0.6, sample_rate: int = 44100) -> Path:
+        """Crisp high-tolerance mechanical magnetic latch snap and chassis lock."""
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        total_samples = int(sample_rate * duration)
+
+        with wave.open(str(out_path), "wb") as wf:
+            wf.setnchannels(2)
+            wf.setsampwidth(2)
+            wf.setframerate(sample_rate)
+
+            for i in range(total_samples):
+                t = i / sample_rate
+                # High-frequency transient snap decaying in ~15ms
+                click_env = math.exp(-t * 120.0)
+                click = math.sin(2 * math.pi * 2400.0 * t) * click_env * 0.85
+
+                # Metallic body ring decaying in ~120ms
+                ring_env = math.exp(-t * 22.0)
+                ring = (
+                    math.sin(2 * math.pi * 920.0 * t) * 0.45
+                    + math.sin(2 * math.pi * 1840.0 * t) * 0.25
+                ) * ring_env
+
+                # Sub-thud contact
+                thud_env = math.exp(-t * 40.0)
+                thud = math.sin(2 * math.pi * 65.0 * t) * thud_env * 0.5
+
+                val = max(-1.0, min(1.0, click + ring + thud))
+                ival = int(val * 32767)
+                wf.writeframes(struct.pack("<hh", ival, ival))
+
+        return out_path
+
+    @classmethod
+    def generate_mechanical_exploded_soundtrack(cls, out_path: Union[str, Path], total_duration: float = 19.0, sample_rate: int = 44100) -> Path:
+        """Full choreographed multi-layer mechanical Foley soundtrack for CAD exploded view animations."""
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        total_samples = int(sample_rate * total_duration)
+
+        # Buffer of mixed stereo samples
+        left_buf = [0.0] * total_samples
+        right_buf = [0.0] * total_samples
+
+        def overlay_samples(samples_l, samples_r, start_sec, gain=1.0):
+            start_idx = int(start_sec * sample_rate)
+            for k in range(len(samples_l)):
+                idx = start_idx + k
+                if idx < total_samples:
+                    left_buf[idx] += samples_l[k] * gain
+                    right_buf[idx] += samples_r[k] * gain
+
+        # 1. Subtle deep ambient drone throughout
+        for i in range(total_samples):
+            t = i / sample_rate
+            # 48Hz / 96Hz sub drone
+            drone = (math.sin(2 * math.pi * 48.0 * t) * 0.12 + math.sin(2 * math.pi * 96.0 * t) * 0.06)
+            left_buf[i] += drone
+            right_buf[i] += drone
+
+        # Proportional timing across total_duration:
+        # Phase 1: Expansion (0.05 to 0.25 of duration)
+        # Phase 2: Telemetry / Inspection (0.20 to 0.70 of duration)
+        # Phase 3: Contraction & Latching (0.65 to 0.88 of duration)
+        # Phase 4: Final Hero Lock Impact (0.85 to 1.0 of duration)
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            tmp_dir = Path(td)
+            
+            pneu_dur = max(1.0, total_duration * 0.25)
+            pneu_path = cls.generate_pneumatic_slide(tmp_dir / "pneu.wav", duration=pneu_dur, sample_rate=sample_rate)
+            with wave.open(str(pneu_path), "rb") as wf:
+                n = wf.getnframes()
+                raw = wf.readframes(n)
+                data = struct.unpack(f"<{n*2}h", raw)
+                overlay_samples([d / 32768.0 for d in data[0::2]], [d / 32768.0 for d in data[1::2]], total_duration * 0.04, gain=0.85)
+
+            servo_dur = max(1.0, total_duration * 0.22)
+            servo_path = cls.generate_servo_motor(tmp_dir / "servo1.wav", duration=servo_dur, sample_rate=sample_rate)
+            with wave.open(str(servo_path), "rb") as wf:
+                n = wf.getnframes()
+                raw = wf.readframes(n)
+                data = struct.unpack(f"<{n*2}h", raw)
+                overlay_samples([d / 32768.0 for d in data[0::2]], [d / 32768.0 for d in data[1::2]], total_duration * 0.08, gain=0.65)
+
+            telem_dur = max(1.5, total_duration * 0.50)
+            telem_path = cls.generate_telemetry(tmp_dir / "telem.wav", duration=telem_dur, sample_rate=sample_rate)
+            with wave.open(str(telem_path), "rb") as wf:
+                n = wf.getnframes()
+                raw = wf.readframes(n)
+                data = struct.unpack(f"<{n*2}h", raw)
+                overlay_samples([d / 32768.0 for d in data[0::2]], [d / 32768.0 for d in data[1::2]], total_duration * 0.22, gain=0.55)
+
+            servo_rev_dur = max(1.0, total_duration * 0.20)
+            servo_rev = cls.generate_servo_motor(tmp_dir / "servo_rev.wav", duration=servo_rev_dur, sample_rate=sample_rate)
+            with wave.open(str(servo_rev), "rb") as wf:
+                n = wf.getnframes()
+                raw = wf.readframes(n)
+                data = struct.unpack(f"<{n*2}h", raw)
+                overlay_samples([d / 32768.0 for d in data[0::2]], [d / 32768.0 for d in data[1::2]], total_duration * 0.68, gain=0.7)
+
+            latch_times = [total_duration * 0.74, total_duration * 0.79, total_duration * 0.84]
+            for idx, latch_t in enumerate(latch_times):
+                latch_path = cls.generate_magnetic_latch(tmp_dir / f"latch_{idx}.wav", duration=0.45, sample_rate=sample_rate)
+                with wave.open(str(latch_path), "rb") as wf:
+                    n = wf.getnframes()
+                    raw = wf.readframes(n)
+                    data = struct.unpack(f"<{n*2}h", raw)
+                    overlay_samples([d / 32768.0 for d in data[0::2]], [d / 32768.0 for d in data[1::2]], latch_t, gain=0.9)
+
+            impact_path = cls.generate_impact(tmp_dir / "impact.wav", duration=min(2.5, total_duration * 0.18), sample_rate=sample_rate)
+            with wave.open(str(impact_path), "rb") as wf:
+                n = wf.getnframes()
+                raw = wf.readframes(n)
+                data = struct.unpack(f"<{n*2}h", raw)
+                overlay_samples([d / 32768.0 for d in data[0::2]], [d / 32768.0 for d in data[1::2]], total_duration * 0.86, gain=0.95)
+
+        # Write final mastered 16-bit stereo WAV with soft limiter
+        with wave.open(str(out_path), "wb") as wf:
+            wf.setnchannels(2)
+            wf.setsampwidth(2)
+            wf.setframerate(sample_rate)
+
+            # Soft clip / master normalize
+            max_peak = max(max(abs(x) for x in left_buf), max(abs(y) for y in right_buf), 0.001)
+            norm_mult = min(1.0, 0.92 / max_peak)
+
+            packed = bytearray()
+            for l_s, r_s in zip(left_buf, right_buf):
+                # Soft tanh saturation
+                l_clamped = math.tanh(l_s * norm_mult)
+                r_clamped = math.tanh(r_s * norm_mult)
+                packed.extend(struct.pack("<hh", int(l_clamped * 32767), int(r_clamped * 32767)))
+            wf.writeframes(packed)
+
+        return out_path
+
