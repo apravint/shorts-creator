@@ -33,7 +33,15 @@ def clean_script_text(text: str) -> str:
 
 def generate_with_gemini(topic: str, lang: str, api_key: str) -> Optional[Dict[str, Any]]:
     """Generate viral short script using Google Gemini API with model fallbacks."""
-    models = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
+    models = [
+        "gemini-3.8-flash",
+        "gemini-flash-latest",
+        "gemini-3.7-flash",
+        "gemini-3.5-flash",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash"
+    ]
     
     if lang == "ta":
         system_instruction = (

@@ -109,6 +109,15 @@ VOICE_ALIASES = {
     "william": "en-AU-WilliamMultilingualNeural",
     "male_en": "en-US-ChristopherNeural",
 
+    # VoiceStudio Sovereign Personas
+    "jarvis": "en-US-ChristopherNeural",       # Calm, sophisticated AI copilot
+    "samantha": "en-US-JennyNeural",           # Warm, conversationalist
+    "cinema-narrator": "en-US-EricNeural",     # Resonant, deep authoritative trailer voice
+    "cyber-synth": "en-US-GuyNeural",          # Glitched energetic vocoded AI
+    "tamil-tech": "ta-IN-PallaviNeural",       # Technical Tamil narrator
+    "tamil-female": "ta-IN-PallaviNeural",
+    "tamil-male": "ta-IN-ValluvarNeural",
+
     # Hindi Voices
     "swara": "hi-IN-SwaraNeural",
     "madhur": "hi-IN-MadhurNeural",
@@ -213,19 +222,41 @@ def synthesize_with_gtts(text: str, lang: str, output_audio: str) -> bool:
 
 def generate_voiceover(
     text: str,
-    lang: str,
-    output_dir: str,
+    output_target: Optional[str] = None,
+    lang: Optional[str] = None,
+    output_dir: Optional[str] = None,
     custom_voice: Optional[str] = None,
+    voice: Optional[str] = None,
     rate: str = "+0%",
     pitch: str = "+0Hz"
 ) -> Dict[str, Any]:
     """
     Main entry point for voiceover generation.
-    Generates audio, captures exact word timestamps, and calculates duration.
+    Supports directory or file output targets, voice/custom_voice, and automatic language detection.
     """
-    os.makedirs(output_dir, exist_ok=True)
-    voice = resolve_voice_identifier(custom_voice, lang)
-    audio_path = os.path.join(output_dir, "voiceover.mp3")
+    import re
+    import tempfile
+    # Determine language
+    default_tmp = tempfile.gettempdir()
+    if output_target in ["en", "ta", "hi", "te", "ml", "kn"]:
+        lang = output_target
+        dest = output_dir or default_tmp
+    else:
+        dest = output_target or output_dir or default_tmp
+
+    if not lang:
+        lang = "ta" if re.search(r'[\u0B80-\u0BFF]', text) else "en"
+
+    # Resolve audio file path
+    if dest.endswith((".mp3", ".wav", ".m4a", ".aac")):
+        audio_path = dest
+        os.makedirs(os.path.dirname(audio_path) or ".", exist_ok=True)
+    else:
+        os.makedirs(dest, exist_ok=True)
+        audio_path = os.path.join(dest, "voiceover.mp3")
+
+    effective_voice_arg = voice or custom_voice
+    resolved_voice = resolve_voice_identifier(effective_voice_arg, lang)
 
     # Automatically enhance pacing and inflection for Tamil
     eff_rate = rate
@@ -236,7 +267,7 @@ def generate_voiceover(
 
     # 1. Try Edge-TTS with millisecond word boundary capture
     success, boundaries = asyncio.run(
-        try_edge_tts_with_boundaries(text, voice, audio_path, rate=eff_rate, pitch=eff_pitch)
+        try_edge_tts_with_boundaries(text, resolved_voice, audio_path, rate=eff_rate, pitch=eff_pitch)
     )
 
     # 2. Seamless Fallback to gTTS if Edge-TTS failed or throttled
@@ -259,4 +290,42 @@ def generate_voiceover(
         "lang": lang,
         "boundaries": boundaries
     }
+
+
+def preview_voiceover(text: str, voice: str = "jarvis"):
+    """Plays voiceover narration through studio audio for previewing before video render."""
+    import shutil
+    import tempfile
+    from pathlib import Path
+
+    if shutil.which("iram-voice"):
+        voice_slug = voice
+        for k, v in VOICE_ALIASES.items():
+            if v == voice or k == voice:
+                voice_slug = k
+                break
+        print(f"🔊 Playing preview via IRAM Voice Studio ({voice_slug})...")
+        subprocess.run(["iram-voice", "speak", text, "--voice", voice_slug])
+        return
+
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+        tmp_path = tmp.name
+
+    try:
+        generate_voiceover(text, tmp_path, voice=voice)
+        if shutil.which("pw-play"):
+            subprocess.run(["pw-play", tmp_path])
+        elif shutil.which("ffplay"):
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", tmp_path])
+        elif shutil.which("mpv"):
+            subprocess.run(["mpv", "--no-video", tmp_path])
+        else:
+            print(f"🔊 [Voice Preview] Audio generated at: {tmp_path} (install ffplay or mpv to listen directly)")
+    finally:
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
+
 

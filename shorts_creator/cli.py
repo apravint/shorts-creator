@@ -122,7 +122,8 @@ def run_pipeline(
     thumb: bool = True,
     generator: str = "auto",
     rate: str = None,
-    output_path: str = None
+    output_path: str = None,
+    harness: bool = False
 ):
     print_banner()
 
@@ -243,6 +244,19 @@ def run_pipeline(
 [bold]Hashtags:[/bold] [dim]{' '.join(script_data['tags'])}[/dim]
 """
     console.print(Panel(summary_text, border_style="green", expand=False))
+
+    # Optional Post-Render Harness² Cyclic Verification & Healing
+    if harness:
+        from shorts_creator.harness_verifier import VideoHarnessVerifier
+        console.print("[bold cyan]🧠 [HARNESS²] Dispatching post-render cyclic verification loop (Plan -> Act -> Verify -> Reflect)...[/bold cyan]")
+        verifier = VideoHarnessVerifier(output_dir=Path(final_video).parent / ".harness")
+        verifier.plan_stage(title=script_data["title"], expected_scenes=1, target_aspect="16:9" if cinema else "9:16")
+        report = verifier.verify_stage(Path(final_video))
+        healed = verifier.reflect_and_heal(Path(final_video), report)
+        if healed != Path(final_video) and healed.exists():
+            final_video = str(healed)
+            console.print(f"[bold green]🏆 [HARNESS²] Certified release candidate: {final_video}[/bold green]")
+
     return final_video
 
 
@@ -375,6 +389,7 @@ def main():
     create_p.add_argument("--no-progress-bar", action="store_true", help="Disable bottom retention progress bar")
     create_p.add_argument("--rate", default=None, help="Speech rate / pacing (e.g. +8%%, +12%%)")
     create_p.add_argument("--no-thumb", action="store_true", help="Disable high-CTR thumbnail generation")
+    create_p.add_argument("--harness", action="store_true", help="Run with Harness² cyclic verification loop (Plan -> Act -> Verify -> Reflect)")
     create_p.add_argument("-o", "--out", help="Output MP4 file path")
 
     # Command: brag
@@ -422,7 +437,72 @@ def main():
     exploded_p.add_argument("--fps", type=int, default=30, help="Render frame rate (default: 30)")
     exploded_p.add_argument("-o", "--out", help="Output MP4 file path")
 
+    # Command: threejs
+    threejs_p = subparsers.add_parser("threejs", help="Launch Three.js 3D WebGL motion graphics & kinetic titles studio")
+    threejs_p.add_argument("--export", dest="export_3d", help="Export a standalone Three.js 3D WebGL motion title scene to specified HTML file")
+    threejs_p.add_argument("-t", "--title", default="SHORTS CREATOR 3D ENGINE", help="Title text for 3D kinetic scene")
+    threejs_p.add_argument("-s", "--subtitle", default="Hardware-Accelerated Autonomous Multimedia Engine", help="Subtitle text")
+    threejs_p.add_argument("-p", "--palette", choices=["tokyo_storm", "cyberpunk_neon", "catppuccin", "matrix_green"], default="tokyo_storm", help="Color theme palette")
+    threejs_p.add_argument("-a", "--aspect", choices=["16:9", "9:16"], default="16:9", help="Aspect ratio")
+
+    # Command: harness
+    harness_p = subparsers.add_parser("harness", help="Run Harness² cyclic verification audit on an existing MP4 video (Plan -> Act -> Verify -> Reflect)")
+    harness_p.add_argument("video_path", help="Path to MP4 video file to verify and certify")
+
+    # Command: preview-voice
+    pv_p = subparsers.add_parser("preview-voice", help="Preview speech synthesis directly through studio audio")
+    pv_p.add_argument("text", nargs="?", default="Welcome to ShortsCreator AI Studio.", help="Text to speak")
+    pv_p.add_argument("-v", "--voice", default="jarvis", help="Voice identifier or persona")
+
+    # Top-Level Flags for convenience
+    parser.add_argument("--threejs", "--3d", dest="threejs", action="store_true", help="Launch Three.js 3D WebGL motion graphics & kinetic titles studio")
+    parser.add_argument("--export-3d", dest="export_3d", default=None, help="Export a standalone Three.js 3D WebGL motion title scene to specified HTML file")
+    parser.add_argument("--harness", action="store_true", help="Run with Harness² cyclic verification loop (Plan -> Act -> Verify -> Reflect)")
+    parser.add_argument("--verify-video", dest="verify_video", default=None, help="Run Harness² cyclic verification audit on an existing MP4 video")
+    parser.add_argument("--preview-voice", dest="preview_voice", action="store_true", help="Preview speech synthesis directly through studio audio")
+
     args = parser.parse_args()
+
+    # Direct top-level handlers
+    if getattr(args, "threejs", False):
+        from shorts_creator.threejs_engine import launch_3d_studio
+        print("🪐 [THREE.JS] Launching Three.js 3D Motion Graphics Studio...")
+        launch_3d_studio()
+        return
+
+    if getattr(args, "export_3d", None):
+        from shorts_creator.threejs_engine import export_3d_title_scene
+        title = getattr(args, "topic", None) or "SHORTS CREATOR 3D ENGINE"
+        export_3d_title_scene(args.export_3d, title, aspect_ratio="9:16")
+        return
+
+    if getattr(args, "verify_video", None):
+        from shorts_creator.harness_verifier import run_harness_audit
+        run_harness_audit(args.verify_video)
+        return
+
+    if getattr(args, "preview_voice", False):
+        from shorts_creator.tts_engine import preview_voiceover
+        text = getattr(args, "topic", None) or getattr(args, "script", None) or "Welcome to ShortsCreator AI Studio."
+        voice = getattr(args, "voice", None) or "jarvis"
+        preview_voiceover(text, voice)
+        return
+
+    if args.command == "threejs":
+        from shorts_creator.threejs_engine import export_3d_title_scene, launch_3d_studio
+        if getattr(args, "export_3d", None):
+            export_3d_title_scene(args.export_3d, args.title, args.subtitle, palette=args.palette, aspect_ratio=args.aspect)
+        else:
+            launch_3d_studio()
+        return
+    elif args.command == "harness":
+        from shorts_creator.harness_verifier import run_harness_audit
+        run_harness_audit(args.video_path)
+        return
+    elif args.command == "preview-voice":
+        from shorts_creator.tts_engine import preview_voiceover
+        preview_voiceover(args.text, args.voice)
+        return
 
     if args.command == "brag":
         repo_path = Path(args.repo_path).resolve()
@@ -499,7 +579,8 @@ def main():
             thumb=not args.no_thumb,
             generator=args.generator,
             rate=args.rate,
-            output_path=args.out
+            output_path=args.out,
+            harness=getattr(args, "harness", False)
         )
     elif args.command == "exploded":
         from shorts_creator.exploded_engine import ExplodedCADVideoEngine, PIXEL_TENSOR_HARDWARE_PRESET

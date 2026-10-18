@@ -46,7 +46,10 @@ TAMIL_TO_ENGLISH_MAP = {
 
 NEGATIVE_NOISE_TERMS = [
     "diagram", "newspaper", "book", "document", "stamp", "coin",
-    "statue", "tombstone", "poster", "pamphlet", "receipt", "invoice"
+    "statue", "tombstone", "poster", "pamphlet", "receipt", "invoice",
+    "etching", "engraving", "woodcut", "lithograph", "watercolor", "fresco",
+    "drawing", "illustration", "sketch", "comic", "painting", "clipart",
+    "costume", "cosplay", "mask"
 ]
 
 # Verified direct open-source MP4 video URLs as immediate fallbacks
