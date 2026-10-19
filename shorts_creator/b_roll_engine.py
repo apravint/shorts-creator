@@ -169,8 +169,11 @@ def resolve_beat_visual_query(sentence_text: str, global_topic: str = "", beat_i
         else:
             shots = [
                 "heroic silhouette rising toward brilliant morning dawn, cinematic vertical",
+                "athlete running along ocean beach sunrise waves, dynamic action vertical",
+                "boxer throwing powerful punch training in gym with dramatic rim light, vertical",
                 "burning golden torch flame in dark cinematic atmosphere, 8k vertical",
-                "athlete running along ocean beach sunrise waves, dynamic action vertical"
+                "modern focused athlete walking confidently through bustling city street morning sun, vertical",
+                "intense warrior silhouette standing on mountain summit against dramatic sky, 8k vertical"
             ]
             return shots[(beat_idx) % len(shots)]
 
