@@ -127,8 +127,16 @@ def assemble_shorts_video(
     # 4. Filters & Retention laser progress bar
     extra_filters = []
 
-    # Apply Shotcraft recipe filter if selected
-    recipe_filter = build_recipe_filter(recipe, width=width, height=height, fps=fps, duration=duration) if recipe else None
+    # Apply Shotcraft recipe filter if selected (with video-stream safety)
+    is_video_input = bool(selected_bg_video and os.path.isfile(selected_bg_video))
+    recipe_filter = build_recipe_filter(
+        recipe,
+        width=width,
+        height=height,
+        fps=fps,
+        duration=duration,
+        for_video=is_video_input
+    ) if recipe else None
 
     # Retention progress bar along bottom
     if progress_bar and duration > 0:
@@ -151,7 +159,7 @@ def assemble_shorts_video(
     cmd = ["ffmpeg", "-y"]
 
     # Video input
-    if selected_bg_video and os.path.isfile(selected_bg_video):
+    if is_video_input:
         cmd.extend([
             "-stream_loop", "-1",
             "-i", selected_bg_video,
@@ -160,7 +168,7 @@ def assemble_shorts_video(
         base_vfilter = (
             f"scale={width}:{height}:force_original_aspect_ratio=increase,"
             f"crop={width}:{height},setsar=1,"
-            f"eq=brightness=-0.04:contrast=1.04"
+            f"eq=brightness=-0.02:contrast=1.03"
         )
         if recipe_filter:
             video_filter = f"{base_vfilter},{recipe_filter},{ass_filter}{extra_str}"
@@ -172,7 +180,10 @@ def assemble_shorts_video(
             "-f", "lavfi",
             "-i", bg_filter
         ])
-        video_filter = f"{ass_filter}{extra_str}"
+        if recipe_filter:
+            video_filter = f"{recipe_filter},{ass_filter}{extra_str}"
+        else:
+            video_filter = f"{ass_filter}{extra_str}"
 
     # Master audio input
     cmd.extend(["-i", master_audio_path])

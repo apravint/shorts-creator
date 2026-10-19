@@ -352,23 +352,23 @@ def render_single_beat_clip(
     out_video_path.parent.mkdir(parents=True, exist_ok=True)
     d_frames = max(30, int(duration * fps))
 
-    # 1. Try real open-source stock video ONLY if explicitly requested
-    if visual_mode == "stock":
-        stock_candidate = get_open_source_video(query_or_topic=query)
+    # 1. Try real open-source stock video for 'stock' and 'auto' modes
+    if visual_mode in ("stock", "auto"):
+        stock_candidate = get_open_source_video(query_or_topic=query, exclude_paths=used_videos)
         if (
             stock_candidate
             and os.path.isfile(stock_candidate)
             and os.path.getsize(stock_candidate) > 200000
-            and (used_videos is None or stock_candidate not in used_videos)
+            and (used_videos is None or stock_candidate not in used_videos or len(used_videos) >= 4)
         ):
             if used_videos is not None:
                 used_videos.add(stock_candidate)
 
-            ss_offset = (beat_idx * 2) % 6
+            ss_offset = (beat_idx * 3) % 15
             crop_filter = (
                 f"scale={width}:{height}:force_original_aspect_ratio=increase,"
                 f"crop={width}:{height},setsar=1,"
-                f"eq=contrast=1.04:brightness=-0.03"
+                f"eq=contrast=1.03:brightness=-0.01"
             )
             cmd = [
                 "ffmpeg", "-y",
@@ -400,16 +400,16 @@ def render_single_beat_clip(
         camera_type = beat_idx % 4
         if camera_type == 0:
             # Steady slow push-in (Hero focus)
-            zp = f"zoompan=z='min(zoom+0.0005,1.08)':d={d_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={width}x{height}:fps={fps}"
+            zp = f"zoompan=z='min(1.0+0.08*(on/{d_frames}),1.08)':d={d_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={width}x{height}:fps={fps}"
         elif camera_type == 1:
             # Gentle pull-back (Revealing scale)
-            zp = f"zoompan=z='max(1.08-0.0005*on,1.0)':d={d_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={width}x{height}:fps={fps}"
+            zp = f"zoompan=z='max(1.08-0.08*(on/{d_frames}),1.0)':d={d_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={width}x{height}:fps={fps}"
         elif camera_type == 2:
             # Upward hero rise (Aspirational climb)
-            zp = f"zoompan=z=1.05:d={d_frames}:x='iw/2-(iw/zoom/2)':y='ih*0.62-(ih*0.25*(on/{d_frames}))':s={width}x{height}:fps={fps}"
+            zp = f"zoompan=z=1.08:d={d_frames}:x='iw/2-(iw/zoom/2)':y='(ih-ih/zoom)*(1-on/{d_frames})':s={width}x{height}:fps={fps}"
         else:
             # Subtle horizontal drift (Documentary pan)
-            zp = f"zoompan=z=1.06:d={d_frames}:x='(iw*0.05)+(iw*0.1*(on/{d_frames}))':y='ih/2-(ih/zoom/2)':s={width}x{height}:fps={fps}"
+            zp = f"zoompan=z=1.08:d={d_frames}:x='(iw-iw/zoom)*(on/{d_frames})':y='ih/2-(ih/zoom/2)':s={width}x{height}:fps={fps}"
 
         cmd_anim = [
             "ffmpeg", "-y",

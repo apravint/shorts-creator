@@ -92,10 +92,44 @@ CURATED_OPEN_VIDEOS = {
     "money": [
         "https://assets.mixkit.co/videos/44644/44644-1080.mp4",
         "https://assets.mixkit.co/videos/49845/49845-1080.mp4"
+    ],
+    "motivation": [
+        "https://assets.mixkit.co/videos/32809/32809-1080.mp4",
+        "https://assets.mixkit.co/videos/609/609-1080.mp4",
+        "https://assets.mixkit.co/videos/40972/40972-1080.mp4",
+        "https://assets.mixkit.co/videos/52079/52079-1080.mp4",
+        "https://assets.mixkit.co/videos/40969/40969-1080.mp4"
+    ],
+    "city": [
+        "https://assets.mixkit.co/videos/49845/49845-1080.mp4",
+        "https://assets.mixkit.co/videos/49878/49878-1080.mp4",
+        "https://assets.mixkit.co/videos/1606/1606-1080.mp4"
+    ],
+    "rain": [
+        "https://assets.mixkit.co/videos/2846/2846-1080.mp4",
+        "https://assets.mixkit.co/videos/25375/25375-720.mp4",
+        "https://assets.mixkit.co/videos/6890/6890-720.mp4"
     ]
 }
 
 KEYWORD_MAPPINGS = {
+    "motivation": [
+        "motivation", "motivational", "mindset", "success", "discipline", "warrior", "hard work",
+        "inspire", "champion", "runner", "running", "gym", "workout", "fitness", "athlete", "focus",
+        "unstoppable", "never give up", "climb", "summit", "peak", "courage", "overcome", "strength",
+        "strong", "perseverance", "hero", "boxer", "training", "grit",
+        "வெற்றி", "உழைப்பு", "விடாமுயற்சி", "முயற்சி", "கனவு", "சிகரம்", "வீரன்", "எழுச்சி", "நம்பிக்கை"
+    ],
+    "rain": [
+        "rain", "storm", "dark", "fog", "cloud", "thunder", "shadow", "struggle", "fall", "fail",
+        "broken", "lightning", "gloom", "sad", "pain",
+        "மழை", "புயல்", "இருள்", "தோல்வி", "தடை", "அடி", "விழு", "பயம்"
+    ],
+    "city": [
+        "city", "street", "urban", "traffic", "night", "building", "tokyo", "lights", "skyline",
+        "chennai", "metro", "road", "downtown",
+        "நகரம்", "தெரு", "சென்னை", "மெட்ரோ"
+    ],
     "space": [
         "space", "galaxy", "universe", "planet", "stars", "alien", "mars", "moon",
         "black hole", "cosmic", "astronomy", "astronaut", "விண்வெளி", "கிரகம்", "சூரியன்",
@@ -228,7 +262,8 @@ def download_video_file(url: str, dest_path: str) -> bool:
 
 def get_open_source_video(
     query_or_topic: Optional[str] = None,
-    preferred_category: Optional[str] = None
+    preferred_category: Optional[str] = None,
+    exclude_paths: Optional[set] = None
 ) -> Optional[str]:
     """
     Main entry point: Automatically finds and downloads a real, open-source
@@ -247,7 +282,10 @@ def get_open_source_video(
     ]
     if cached_candidates:
         valid = [f for f in cached_candidates if os.path.getsize(f) > 500000]
-        if valid:
+        fresh = [f for f in valid if not exclude_paths or f not in exclude_paths]
+        if fresh:
+            return random.choice(fresh)
+        elif len(valid) >= 3:
             return random.choice(valid)
 
     # 2. Try Mixkit Scraping

@@ -8,12 +8,15 @@ shorts_creator/bg_manager.py
 shorts_creator/bgm_manager.py
 shorts_creator/brag.py
 shorts_creator/cli.py
+shorts_creator/exploded_engine.py
+shorts_creator/harness_verifier.py
 shorts_creator/script_gen.py
 shorts_creator/sfx.py
 shorts_creator/shotcraft.py
 shorts_creator/soundscape.py
 shorts_creator/subtitle_gen.py
 shorts_creator/templates.py
+shorts_creator/threejs_engine.py
 shorts_creator/thumbnail.py
 shorts_creator/tts_engine.py
 shorts_creator/video_engine.py
