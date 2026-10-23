@@ -202,10 +202,23 @@ async def try_edge_tts_with_boundaries(
                         "end": round(start_sec + dur_sec, 3),
                         "duration": round(dur_sec, 3)
                     })
-        success = os.path.exists(output_audio) and os.path.getsize(output_audio) > 1000
+        min_expected = max(2, int(len(text.split()) * 0.4))
+        has_min_boundaries = len(boundaries) >= min_expected
+        has_min_size = os.path.exists(output_audio) and os.path.getsize(output_audio) > 8000
+        success = has_min_size and has_min_boundaries
+        if not success and os.path.exists(output_audio):
+            try:
+                os.remove(output_audio)
+            except Exception:
+                pass
         return success, boundaries
     except Exception as e:
         print(f"[Info] Edge-TTS notice: {e}. Switching to gTTS fallback.")
+        if os.path.exists(output_audio):
+            try:
+                os.remove(output_audio)
+            except Exception:
+                pass
         return False, []
 
 
