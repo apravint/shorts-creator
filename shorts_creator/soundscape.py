@@ -102,6 +102,7 @@ class SoundscapeEngine:
         duration: float,
         ambient_vibe: Optional[str] = None,
         sfx_cue: Optional[str] = None,
+        cut_timestamps: Optional[List[float]] = None,
         music_volume: float = 0.16,
         ambient_volume: float = 0.10,
         work_dir: Optional[Union[str, Path]] = None,
@@ -133,9 +134,16 @@ class SoundscapeEngine:
             inputs.extend(["-stream_loop", "-1", "-i", str(amb_path)])
             ambient_idx = len(inputs) // 2 - 1
 
-        # Synthesize sfx cue if requested
+        # Synthesize montage sfx (whooshes on cuts + hook impact) or specific sfx cue
         sfx_idx = None
-        if sfx_cue and sfx_cue.lower() in ("impact", "whoosh", "telemetry", "riser"):
+        if cut_timestamps and len(cut_timestamps) > 0:
+            sfx_file = work_dir / "cue_montage.wav"
+            SoundEffectsSynthesizer.generate_montage_sfx(
+                sfx_file, cut_times=cut_timestamps, total_duration=duration
+            )
+            inputs.extend(["-i", str(sfx_file)])
+            sfx_idx = len(inputs) // 2 - 1
+        elif sfx_cue and sfx_cue.lower() in ("impact", "whoosh", "telemetry", "riser"):
             sfx_file = work_dir / f"cue_{sfx_cue}.wav"
             if sfx_cue == "impact":
                 SoundEffectsSynthesizer.generate_impact(sfx_file, duration=min(2.5, duration))

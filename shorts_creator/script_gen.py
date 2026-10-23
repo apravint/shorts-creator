@@ -45,22 +45,26 @@ def generate_with_gemini(topic: str, lang: str, api_key: str) -> Optional[Dict[s
     
     if lang == "ta":
         system_instruction = (
-            "You are an expert YouTube Shorts creator for Tamil audience. "
-            "Write a highly engaging 30-45 second viral script entirely in Tamil (தமிழ்). "
-            "Structure: "
-            "1. A powerful 3-second hook that creates curiosity. "
-            "2. Three fascinating, rapid-fire points or facts. "
-            "3. A call-to-action asking viewers to comment and subscribe. "
+            "You are an elite YouTube Shorts creator for Tamil audience. "
+            "Write a high-retention 30-second viral script entirely in natural, conversational spoken Tamil (பேச்சுத் தமிழ்). "
+            "STRICT RULES: "
+            "1. Do NOT use stiff textbook/literary Tamil (e.g. use 'தோணுதா', 'செஞ்சிருக்காங்க', 'பாருங்க', 'உங்ககிட்ட' instead of 'தோன்றுகிறதா', 'செய்யப்பட்டுள்ளது'). "
+            "2. Structure: "
+            "   - Hook: A magnetic 3-second opening hook that sparks curiosity. "
+            "   - Points: 3 punchy, rapid-fire sentences with high emotional momentum. "
+            "   - CTA / Loop Outro: An INFINITE LOOP bridge sentence that seamlessly and grammatically flows right back into the opening hook without saying generic 'subscribe' slogans. "
             "Output JSON with keys: title, hook, points (array of 3 strings), cta, tags (array of 5 hashtags)."
         )
     else:
         system_instruction = (
-            "You are an expert YouTube Shorts creator. "
-            "Write a high-retention 30-45 second viral script in English. "
-            "Structure: "
-            "1. A powerful 3-second hook that creates curiosity. "
-            "2. Three punchy, fast-paced points or facts. "
-            "3. A call-to-action asking viewers to comment and subscribe. "
+            "You are an elite YouTube Shorts creator. "
+            "Write a high-retention 30-second viral script in natural, conversational English. "
+            "STRICT RULES: "
+            "1. Punchy, rapid-paced delivery suitable for 1-2 word kinetic captions. "
+            "2. Structure: "
+            "   - Hook: A magnetic 3-second opening question or statement. "
+            "   - Points: 3 rapid-fire, high-retention sentences. "
+            "   - CTA / Loop Outro: An INFINITE LOOP bridge sentence that seamlessly and grammatically flows right back into the opening hook (creating an endless looping video). "
             "Output JSON with keys: title, hook, points (array of 3 strings), cta, tags (array of 5 hashtags)."
         )
 
@@ -101,14 +105,16 @@ def generate_with_groq(topic: str, lang: str, api_key: str) -> Optional[Dict[str
     
     if lang == "ta":
         sys_msg = (
-            "You are an expert YouTube Shorts creator for Tamil audience. "
-            "Write a highly engaging 30-second viral script entirely in Tamil (தமிழ்). "
+            "You are an elite YouTube Shorts creator for Tamil audience. "
+            "Write a high-retention 30-second viral script in natural conversational spoken Tamil (பேச்சுத் தமிழ், no stiff textbook grammar). "
+            "The final 'cta' MUST be an infinite loop bridge sentence flowing back into the opening hook. "
             "Respond ONLY with a JSON object containing keys: title, hook, points (list of 3 strings), cta, tags (list of 5 hashtags)."
         )
     else:
         sys_msg = (
-            "You are an expert YouTube Shorts creator. "
-            "Write a high-retention 30-second viral script in English. "
+            "You are an elite YouTube Shorts creator. "
+            "Write a high-retention 30-second viral script in natural, kinetic conversational English. "
+            "The final 'cta' MUST be an infinite loop bridge sentence flowing back into the opening hook. "
             "Respond ONLY with a JSON object containing keys: title, hook, points (list of 3 strings), cta, tags (list of 5 hashtags)."
         )
 
@@ -145,7 +151,9 @@ def get_procedural_template(topic: str, lang: str) -> Dict[str, Any]:
     topic_lower = topic.lower()
     
     category = "space"
-    if any(k in topic_lower for k in ["tamil", "தமிழ்", "language", "மொழி", "செம்மொழி", "தமிழன்", "இலக்கியம்", "சிறப்பு"]):
+    if any(k in topic_lower for k in ["motivation", "motivational", "mindset", "success", "discipline", "வெற்றி", "முயற்சி", "விடாமுயற்சி", "உழைப்பு", "தோல்வி", "நம்பிக்கை", "சிகரம்"]):
+        category = "motivation"
+    elif any(k in topic_lower for k in ["tamil", "தமிழ்", "language", "மொழி", "செம்மொழி", "தமிழன்", "இலக்கியம்", "சிறப்பு"]):
         category = "tamil"
     elif any(k in topic_lower for k in ["space", "universe", "planet", "black hole", "galaxy", "விண்வெளி", "கிரகம்", "நிலவு", "சூரியன்"]):
         category = "space"
@@ -155,7 +163,7 @@ def get_procedural_template(topic: str, lang: str) -> Dict[str, Any]:
         category = "history"
     elif any(k in topic_lower for k in ["tech", "ai", "robot", "computer", "future", "ஏஐ", "தொழில்நுட்பம்", "ரோபோ", "கணினி"]):
         category = "technology"
-    elif any(k in topic_lower for k in ["money", "rich", "wealth", "business", "habit", "பணம்", "கோடீஸ்வரன்", "வெற்றி", "முதலீடு"]):
+    elif any(k in topic_lower for k in ["money", "rich", "wealth", "business", "habit", "பணம்", "கோடீஸ்வரன்", "முதலீடு"]):
         category = "wealth"
         
     template = VIRAL_TEMPLATES.get(category, VIRAL_TEMPLATES["space"])[lang]

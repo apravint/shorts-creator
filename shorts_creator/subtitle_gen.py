@@ -2,13 +2,57 @@
 Animated Subtitle Engine (Hormozi / Viral Shorts Style).
 Generates Advanced SubStation Alpha (.ass) subtitles with:
 - True millisecond word-by-word highlight synchronization
-- Micro-bounce pop animations on spoken words (\fscx, \fscy)
+- Micro-bounce pop animations on spoken words (\\fscx, \\fscy)
+- Contextual semantic emoji detection for Tamil and English
+- Ultra-punchy 1-2 word rapid kinetic bursts
 - Full Tamil Unicode HarfBuzz complex ligature shaping
 - Multi-palette viral neon themes
 """
 
 import os
 from typing import List, Dict, Any, Optional
+
+# Contextual Semantic Emoji Map (Tamil & English)
+SEMANTIC_EMOJIS = {
+    # Victory / Success / Trophy
+    "வெற்றி": "🏆", "ஜெயி": "🏆", "win": "🏆", "winner": "🏆", "victory": "🏆",
+    "success": "🎯", "target": "🎯", "இலக்கு": "🎯", "champion": "🥇", "first": "🥇",
+    # Fire / Passion / Motivation / Energy
+    "நெருப்பு": "🔥", "வெறி": "🔥", "தீ": "🔥", "fire": "🔥", "burn": "🔥",
+    "passion": "🔥", "unstoppable": "⚡", "மின்": "⚡", "lightning": "⚡", "energy": "⚡",
+    # Power / Strength / Gym / Warrior
+    "வீரம்": "💪", "பலம்": "💪", "உழைப்பு": "💪", "வலிமை": "💪", "strength": "💪",
+    "power": "💪", "strong": "💪", "workout": "🏋️", "discipline": "🛡️", "hero": "🦸",
+    # Seed / Growth / Nature / Summit
+    "விதை": "🌱", "முளை": "🌱", "விருட்சம்": "🌳", "மரம்": "🌳", "grow": "🌱",
+    "growth": "📈", "உயர்வு": "📈", "rising": "🌅", "சிகரம்": "🏔️", "summit": "🏔️",
+    # Mindset / Focus / Brain / Secret
+    "மூளை": "🧠", "சிந்தனை": "🧠", "mind": "🧠", "mindset": "🧠", "focus": "🎯",
+    "கவனம்": "🎯", "idea": "💡", "ரகசியம்": "🤫", "secret": "🤫", "think": "💡",
+    # Danger / Fear / Obstacle / Fall
+    "பயம்": "🛑", "தடை": "🚧", "இருள்": "🌑", "fail": "❌", "தோல்வி": "❌",
+    "danger": "⚠️", "stop": "🛑", "pain": "💔", "struggle": "⚔️", "போர்": "⚔️",
+    # Time / Speed / Rocket / Space
+    "நேரம்": "⏳", "காலம்": "⏳", "time": "⏳", "வேகம்": "🚀", "rocket": "🚀",
+    "fly": "🦅", "வானம்": "🌌", "space": "🪐", "star": "⭐", "universe": "🌌",
+    # Money / Wealth / Royalty
+    "பணம்": "💰", "செல்வம்": "💰", "money": "💰", "cash": "💵", "rich": "💎",
+    "வைரம்": "💎", "billionaire": "👑", "ராஜா": "👑", "king": "👑",
+    # Heart / Magic / Future
+    "இதயம்": "❤️", "love": "❤️", "உண்மை": "✨", "magic": "✨",
+    "future": "🔮", "எதிர்காலம்": "🔮"
+}
+
+
+def get_word_emoji(word: str) -> str:
+    """Find contextual semantic emoji for a given word."""
+    clean_w = word.lower().strip(".,!?:;\"'()[]")
+    if clean_w in SEMANTIC_EMOJIS:
+        return SEMANTIC_EMOJIS[clean_w]
+    for k, emoji in SEMANTIC_EMOJIS.items():
+        if k in clean_w and len(k) >= 3:
+            return emoji
+    return ""
 
 
 def format_ass_time(seconds: float) -> str:
@@ -24,8 +68,8 @@ def format_ass_time(seconds: float) -> str:
     return f"{hrs}:{mins:02d}:{secs:02d}.{centis:02d}"
 
 
-def split_into_bursts(text: str, max_words: int = 3) -> List[List[str]]:
-    """Split text into punchy 2-3 word visual bursts."""
+def split_into_bursts(text: str, max_words: int = 2) -> List[List[str]]:
+    """Split text into punchy 1-2 word rapid visual bursts (Hormozi style)."""
     words = [w for w in text.split() if w.strip()]
     bursts = []
     current = []
@@ -57,10 +101,10 @@ def generate_from_boundaries(
     boundaries: List[Dict[str, Any]],
     total_duration: float,
     highlight_color: str,
-    max_words: int = 3
+    max_words: int = 2
 ) -> List[str]:
     """
-    Generate highly-synchronized ASS subtitle events using exact Edge-TTS word boundaries.
+    Generate kinetic ASS subtitle events using exact Edge-TTS word boundaries with auto-emojis.
     """
     events = []
     # Filter valid words
@@ -68,7 +112,7 @@ def generate_from_boundaries(
     if not valid_items:
         return events
 
-    # Group into bursts
+    # Group into punchy 1-2 word bursts
     bursts: List[List[Dict[str, Any]]] = []
     current_burst: List[Dict[str, Any]] = []
     for item in valid_items:
@@ -91,24 +135,25 @@ def generate_from_boundaries(
             if w_idx < burst_len - 1:
                 w_end = burst[w_idx + 1]["start"]
             else:
-                # Last word in burst: bridge to next burst start or add small hold
                 if b_idx < len(bursts) - 1:
                     next_burst_start = bursts[b_idx + 1][0]["start"]
-                    w_end = min(w_item["end"] + 0.3, next_burst_start)
+                    w_end = min(w_item["end"] + 0.28, next_burst_start)
                 else:
-                    w_end = min(total_duration, w_item["end"] + 0.4)
+                    w_end = min(total_duration, w_item["end"] + 0.35)
 
             if w_end <= w_start:
-                w_end = w_start + 0.25
+                w_end = w_start + 0.22
 
-            # Active word has pop bounce animation (\t scale) and highlight color
+            # Active word has pop bounce animation (\t scale), highlight color, and contextual emoji
             styled_words = []
             for j, w in enumerate(burst_words):
                 if j == w_idx:
-                    # Pop 12% larger on speech start, then settle back
-                    pop_tag = "{\\c" + highlight_color + "\\t(0,70,\\fscx112\\fscy112)\\t(70,140,\\fscx100\\fscy100)}"
+                    emoji = get_word_emoji(w)
+                    w_display = f"{w} {emoji}" if emoji else w
+                    # Pop 18% larger on speech start, then settle smoothly back
+                    pop_tag = "{\\c" + highlight_color + "\\t(0,60,\\fscx118\\fscy118)\\t(60,130,\\fscx100\\fscy100)}"
                     reset_tag = "{\\c&HFFFFFF&\\fscx100\\fscy100}"
-                    styled_words.append(f"{pop_tag}{w}{reset_tag}")
+                    styled_words.append(f"{pop_tag}{w_display}{reset_tag}")
                 else:
                     styled_words.append(w)
 
@@ -123,7 +168,8 @@ def generate_from_boundaries(
 def generate_from_sentences(
     sentences: List[str],
     total_duration: float,
-    highlight_color: str
+    highlight_color: str,
+    max_words: int = 2
 ) -> List[str]:
     """
     Fallback subtitle generator when boundary timestamps are unavailable.
@@ -140,10 +186,10 @@ def generate_from_sentences(
         if not sentence:
             continue
 
-        bursts = split_into_bursts(sentence, max_words=3)
+        bursts = split_into_bursts(sentence, max_words=max_words)
         for burst in bursts:
             burst_words_count = len(burst)
-            burst_duration = max(0.6, burst_words_count * seconds_per_word)
+            burst_duration = max(0.5, burst_words_count * seconds_per_word)
             burst_start = current_time
             burst_end = min(total_duration, burst_start + burst_duration)
 
@@ -155,9 +201,11 @@ def generate_from_sentences(
                 styled_parts = []
                 for j, w in enumerate(burst):
                     if j == idx:
-                        pop_tag = "{\\c" + highlight_color + "\\t(0,70,\\fscx112\\fscy112)\\t(70,140,\\fscx100\\fscy100)}"
+                        emoji = get_word_emoji(w)
+                        w_display = f"{w} {emoji}" if emoji else w
+                        pop_tag = "{\\c" + highlight_color + "\\t(0,60,\\fscx118\\fscy118)\\t(60,130,\\fscx100\\fscy100)}"
                         reset_tag = "{\\c&HFFFFFF&\\fscx100\\fscy100}"
-                        styled_parts.append(f"{pop_tag}{w}{reset_tag}")
+                        styled_parts.append(f"{pop_tag}{w_display}{reset_tag}")
                     else:
                         styled_parts.append(w)
 
@@ -206,9 +254,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
 
     if boundaries and len(boundaries) > 0:
-        events = generate_from_boundaries(boundaries, total_duration, highlight_color)
+        events = generate_from_boundaries(boundaries, total_duration, highlight_color, max_words=2)
     else:
-        events = generate_from_sentences(sentences, total_duration, highlight_color)
+        events = generate_from_sentences(sentences, total_duration, highlight_color, max_words=2)
 
     os.makedirs(os.path.dirname(output_ass_path), exist_ok=True)
     with open(output_ass_path, "w", encoding="utf-8") as f:

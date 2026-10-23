@@ -73,30 +73,16 @@ def assemble_shorts_video(
     height = 1920
     fps = 30
 
-    # 1. Master Audio with Multi-Layer Soundscape & Sidechain Ducking
-    master_audio_path = os.path.join(temp_dir, "master_audio.aac")
-    SoundscapeEngine.mix_master_soundscape(
-        narration_path=voiceover_path,
-        bg_music_path=bgm_path,
-        output_path=master_audio_path,
-        duration=duration,
-        ambient_vibe=ambient_vibe,
-        sfx_cue=sfx_cue,
-        music_volume=0.16,
-        ambient_volume=0.10,
-        work_dir=temp_dir,
-        use_sidechain=True
-    )
-
-    # 2. Build or resolve background video
-    # If sentences are provided and no custom video is forced, build dynamic multi-beat B-roll montage!
+    # 1. Build or resolve background video & discover scene cut timestamps
     selected_bg_video = None
+    cut_timestamps: List[float] = []
+
     if bg_video_path and os.path.isfile(bg_video_path):
         selected_bg_video = bg_video_path
     elif sentences and len(sentences) >= 1:
         stitched_montage = Path(temp_dir) / "stitched_broll_montage.mp4"
         try:
-            build_multi_beat_montage(
+            montage_res = build_multi_beat_montage(
                 sentences=sentences,
                 total_duration=duration,
                 workspace_dir=Path(temp_dir),
@@ -107,8 +93,13 @@ def assemble_shorts_video(
                 height=height,
                 visual_mode=visual_mode
             )
-            if stitched_montage.exists() and stitched_montage.stat().st_size > 10000:
-                selected_bg_video = str(stitched_montage)
+            if isinstance(montage_res, tuple):
+                m_path, cuts = montage_res
+                cut_timestamps = cuts or []
+            else:
+                m_path = montage_res
+            if Path(m_path).exists() and Path(m_path).stat().st_size > 10000:
+                selected_bg_video = str(m_path)
         except Exception as e:
             print(f"[Warning] Multi-beat montage fallback: {e}")
 
@@ -118,6 +109,22 @@ def assemble_shorts_video(
             custom_video=bg_video_path,
             theme_hint=bg_type
         )
+
+    # 2. Master Audio with Multi-Layer Soundscape, Synchronized Transition SFX & Sidechain Ducking
+    master_audio_path = os.path.join(temp_dir, "master_audio.aac")
+    SoundscapeEngine.mix_master_soundscape(
+        narration_path=voiceover_path,
+        bg_music_path=bgm_path,
+        output_path=master_audio_path,
+        duration=duration,
+        ambient_vibe=ambient_vibe,
+        sfx_cue=sfx_cue,
+        cut_timestamps=cut_timestamps,
+        music_volume=0.16,
+        ambient_volume=0.10,
+        work_dir=temp_dir,
+        use_sidechain=True
+    )
 
     # 3. Subtitle filter with HarfBuzz complex shaping
     ass_escaped = subtitle_ass_path.replace("\\", "/").replace(":", "\\:")

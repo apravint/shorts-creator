@@ -41,7 +41,13 @@ TAMIL_TO_ENGLISH_MAP = {
     'நெருப்பு': 'fire flame burning',
     'ரோபோ': 'robot futuristic android',
     'கருந்துளை': 'black hole deep space cosmic',
-    'சூரியன்': 'sun solar flare sunrise'
+    'சூரியன்': 'sun solar flare sunrise',
+    'உளவியல்': 'psychology human mind thinking',
+    'அதிசயம்': 'wonder mystery ancient marvel',
+    'மர்மம்': 'mystery enigmatic secret',
+    'பழக்கம்': 'habits routine morning discipline',
+    'சிந்தனை': 'thinking deep mindset philosophy',
+    'உண்மை': 'truth revelation wisdom'
 }
 
 NEGATIVE_NOISE_TERMS = [
@@ -98,7 +104,8 @@ CURATED_OPEN_VIDEOS = {
         "https://assets.mixkit.co/videos/609/609-1080.mp4",
         "https://assets.mixkit.co/videos/40972/40972-1080.mp4",
         "https://assets.mixkit.co/videos/52079/52079-1080.mp4",
-        "https://assets.mixkit.co/videos/40969/40969-1080.mp4"
+        "https://assets.mixkit.co/videos/40969/40969-1080.mp4",
+        "https://assets.mixkit.co/videos/4834/4834-1080.mp4"
     ],
     "city": [
         "https://assets.mixkit.co/videos/49845/49845-1080.mp4",
@@ -110,6 +117,20 @@ CURATED_OPEN_VIDEOS = {
         "https://assets.mixkit.co/videos/25375/25375-720.mp4",
         "https://assets.mixkit.co/videos/6890/6890-720.mp4"
     ]
+}
+
+# Semantic query relaxation chains to guarantee non-repeating footage
+CATEGORY_RELAXATION_MAP = {
+    "motivation": ["motivation", "city", "nature", "rain", "ocean"],
+    "space": ["space", "cyberpunk", "technology"],
+    "cyberpunk": ["cyberpunk", "technology", "city"],
+    "technology": ["technology", "cyberpunk", "space"],
+    "ancient": ["ancient", "nature", "ocean"],
+    "nature": ["nature", "ocean", "rain"],
+    "ocean": ["ocean", "nature", "rain"],
+    "rain": ["rain", "nature", "city"],
+    "money": ["money", "city", "technology"],
+    "city": ["city", "technology", "rain"],
 }
 
 KEYWORD_MAPPINGS = {
@@ -268,45 +289,53 @@ def get_open_source_video(
     """
     Main entry point: Automatically finds and downloads a real, open-source
     high-definition video from the internet for the given topic or query.
+    Employs smart query relaxation to guarantee diverse, non-repeating footage.
     Caches downloads locally in assets/backgrounds.
     """
     os.makedirs(CACHE_DIR, exist_ok=True)
     resolved_query = resolve_search_query(query_or_topic or "")
     cat = preferred_category or extract_search_category(query_or_topic or "")
+    relaxed_categories = CATEGORY_RELAXATION_MAP.get(cat, [cat, "nature", "space", "city"])
 
-    # 1. Check local cache first
-    cached_candidates = [
-        os.path.join(CACHE_DIR, f)
-        for f in os.listdir(CACHE_DIR)
-        if f.lower().startswith(cat) and f.lower().endswith((".mp4", ".mov", ".webm"))
-    ]
-    if cached_candidates:
-        valid = [f for f in cached_candidates if os.path.getsize(f) > 500000]
-        fresh = [f for f in valid if not exclude_paths or f not in exclude_paths]
-        if fresh:
-            return random.choice(fresh)
-        elif len(valid) >= 3:
-            return random.choice(valid)
+    # 1. Check local cache across relaxed category chain for unused footage
+    for candidate_cat in relaxed_categories:
+        cached_candidates = [
+            os.path.join(CACHE_DIR, f)
+            for f in os.listdir(CACHE_DIR)
+            if f.lower().startswith(candidate_cat) and f.lower().endswith((".mp4", ".mov", ".webm"))
+        ]
+        if cached_candidates:
+            valid = [f for f in cached_candidates if os.path.getsize(f) > 500000]
+            fresh = [f for f in valid if not exclude_paths or f not in exclude_paths]
+            if fresh:
+                return random.choice(fresh)
 
-    # 2. Try Mixkit Scraping
+    # 2. Try Mixkit Scraping for the primary category
     urls = scrape_mixkit_video_urls(cat)
 
     # 3. Try Wikimedia Commons Video API
     if not urls and resolved_query:
         urls = search_wikimedia_videos(resolved_query)
 
-    # 4. Fallback to Curated Open Videos
+    # 4. Fallback to Curated Open Videos across relaxation chain
     if not urls:
-        urls = CURATED_OPEN_VIDEOS.get(cat, CURATED_OPEN_VIDEOS["space"])
+        for candidate_cat in relaxed_categories:
+            if candidate_cat in CURATED_OPEN_VIDEOS:
+                urls = CURATED_OPEN_VIDEOS[candidate_cat]
+                break
+
+    if not urls:
+        urls = CURATED_OPEN_VIDEOS["space"]
 
     random.shuffle(urls)
 
-    for vid_url in urls[:3]:
+    for vid_url in urls[:4]:
         dest_filename = f"{cat}_{random.randint(100, 999)}.mp4"
         dest_path = os.path.join(CACHE_DIR, dest_filename)
         success = download_video_file(vid_url, dest_path)
         if success and os.path.isfile(dest_path):
-            return dest_path
+            if not exclude_paths or dest_path not in exclude_paths:
+                return dest_path
 
     # Fallback to any valid video in CACHE_DIR
     all_local = [
@@ -314,4 +343,7 @@ def get_open_source_video(
         for f in os.listdir(CACHE_DIR)
         if f.lower().endswith((".mp4", ".webm")) and os.path.getsize(os.path.join(CACHE_DIR, f)) > 100000
     ]
+    fresh_any = [f for f in all_local if not exclude_paths or f not in exclude_paths]
+    if fresh_any:
+        return random.choice(fresh_any)
     return all_local[0] if all_local else None

@@ -341,3 +341,91 @@ class SoundEffectsSynthesizer:
 
         return out_path
 
+    @classmethod
+    def generate_montage_sfx(
+        cls,
+        out_path: Union[str, Path],
+        cut_times: List[float],
+        total_duration: float,
+        sample_rate: int = 44100
+    ) -> Path:
+        """
+        Synthesizes a unified, multi-event Foley soundtrack synchronized to scene cuts:
+        1. Sub-bass cinematic impact on the opening hook (t=0.0).
+        2. Micro-whoosh camera transitions centered precisely on each B-roll cut point.
+        3. Subtle riser escalation before the final climax if duration permits.
+        """
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        total_samples = int(sample_rate * total_duration)
+
+        left_buf = [0.0] * total_samples
+        right_buf = [0.0] * total_samples
+
+        def overlay_samples(samples_l, samples_r, start_sec, gain=1.0):
+            start_idx = int(start_sec * sample_rate)
+            for k in range(len(samples_l)):
+                idx = start_idx + k
+                if 0 <= idx < total_samples:
+                    left_buf[idx] += samples_l[k] * gain
+                    right_buf[idx] += samples_r[k] * gain
+
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            tmp_dir = Path(td)
+
+            # 1. Opening Hook Impact (t = 0.0s)
+            hook_impact_dur = min(2.0, total_duration * 0.4)
+            impact_file = cls.generate_impact(tmp_dir / "hook_impact.wav", duration=hook_impact_dur, sample_rate=sample_rate)
+            with wave.open(str(impact_file), "rb") as wf:
+                n = wf.getnframes()
+                raw = wf.readframes(n)
+                data = struct.unpack(f"<{n*2}h", raw)
+                overlay_samples([d / 32768.0 for d in data[0::2]], [d / 32768.0 for d in data[1::2]], 0.0, gain=0.9)
+
+            # 2. Dynamic Whooshes on every Cut Point
+            whoosh_dur = 0.55
+            whoosh_half = whoosh_dur / 2.0
+            whoosh_file = cls.generate_whoosh(tmp_dir / "cut_whoosh.wav", duration=whoosh_dur, sample_rate=sample_rate)
+            with wave.open(str(whoosh_file), "rb") as wf:
+                n = wf.getnframes()
+                raw = wf.readframes(n)
+                data = struct.unpack(f"<{n*2}h", raw)
+                whoosh_l = [d / 32768.0 for d in data[0::2]]
+                whoosh_r = [d / 32768.0 for d in data[1::2]]
+
+                for t_cut in cut_times:
+                    # Only insert whoosh if cut is far enough from start and end
+                    if 0.8 <= t_cut <= (total_duration - 0.6):
+                        start_t = max(0.0, t_cut - whoosh_half)
+                        overlay_samples(whoosh_l, whoosh_r, start_t, gain=0.65)
+
+            # 3. Optional Tension Riser before climax / loop outro
+            if total_duration >= 14.0:
+                riser_dur = min(3.2, total_duration * 0.22)
+                riser_start = max(1.0, total_duration - riser_dur - 0.8)
+                riser_file = cls.generate_riser(tmp_dir / "climax_riser.wav", duration=riser_dur, sample_rate=sample_rate)
+                with wave.open(str(riser_file), "rb") as wf:
+                    n = wf.getnframes()
+                    raw = wf.readframes(n)
+                    data = struct.unpack(f"<{n*2}h", raw)
+                    overlay_samples([d / 32768.0 for d in data[0::2]], [d / 32768.0 for d in data[1::2]], riser_start, gain=0.45)
+
+        # Master normalize with soft limiter
+        with wave.open(str(out_path), "wb") as wf:
+            wf.setnchannels(2)
+            wf.setsampwidth(2)
+            wf.setframerate(sample_rate)
+
+            max_peak = max(max(abs(x) for x in left_buf), max(abs(y) for y in right_buf), 0.001)
+            norm_mult = min(1.0, 0.90 / max_peak)
+
+            packed = bytearray()
+            for l_s, r_s in zip(left_buf, right_buf):
+                l_clamped = math.tanh(l_s * norm_mult)
+                r_clamped = math.tanh(r_s * norm_mult)
+                packed.extend(struct.pack("<hh", int(l_clamped * 32767), int(r_clamped * 32767)))
+            wf.writeframes(packed)
+
+        return out_path
+

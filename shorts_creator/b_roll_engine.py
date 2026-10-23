@@ -461,12 +461,13 @@ def build_multi_beat_montage(
     width: int = 1080,
     height: int = 1920,
     visual_mode: str = "auto"
-) -> Path:
+) -> Any:
     """
     Master B-Roll Orchestrator:
     1. Splits script into rhythmic visual beats synced to speech timestamps.
     2. Renders a unique, non-repeating video clip for every single beat.
-    3. Stitches all clips seamlessly into a single 1080x1920 video montage.
+    3. Stitches all clips seamlessly with FFmpeg xfade micro-transitions and unified color grading.
+    4. Returns (out_stitched_video, cut_timestamps).
     """
     workspace_dir = Path(workspace_dir)
     workspace_dir.mkdir(parents=True, exist_ok=True)
@@ -478,18 +479,29 @@ def build_multi_beat_montage(
     used_stock_videos: set = set()
     used_image_urls: set = set()
 
-    print(f"🎬 [B-Roll Director] Assembling dynamic {len(beats)}-shot visual montage for '{global_topic[:30]}'...")
+    # Pre-calculate cut timestamps and transition overlap
+    trans_dur = 0.25
+    cut_timestamps: List[float] = []
+    accum = 0.0
+    for beat in beats[:-1]:
+        accum += beat["duration"]
+        cut_timestamps.append(round(accum, 3))
+
+    num_beats = len(beats)
+    print(f"🎬 [B-Roll Director] Assembling dynamic {num_beats}-shot visual montage for '{global_topic[:30]}'...")
 
     for idx, beat in enumerate(beats):
-        dur = beat["duration"]
+        base_dur = beat["duration"]
+        # Extend duration by transition duration for all clips except the last for smooth xfade
+        render_dur = base_dur + trans_dur if (idx < num_beats - 1 and num_beats >= 2) else base_dur
         sent = beat["text"]
         query = resolve_beat_visual_query(sent, global_topic=global_topic, beat_idx=idx + 1)
         beat_out = beats_dir / f"beat_{idx+1:02d}.mp4"
 
-        print(f"   🎥 Beat {idx+1}/{len(beats)} ({dur:.1f}s): \"{sent[:32]}...\" -> Query: \"{query[:36]}\"")
+        print(f"   🎥 Beat {idx+1}/{num_beats} ({render_dur:.1f}s): \"{sent[:32]}...\" -> Query: \"{query[:36]}\"")
         clip = render_single_beat_clip(
             query=query,
-            duration=dur,
+            duration=render_dur,
             out_video_path=beat_out,
             beat_idx=idx + 1,
             width=width,
@@ -500,44 +512,88 @@ def build_multi_beat_montage(
         )
         rendered_clips.append(clip)
 
+    # 1. Attempt smooth xfade transition stitching with cinematic color grading
+    xfade_done = False
+    if len(rendered_clips) >= 2 and all(b["duration"] >= 0.65 for b in beats):
+        try:
+            inputs = []
+            for c in rendered_clips:
+                inputs.extend(["-i", str(c)])
 
-    # Concatenate all beat video clips using FFmpeg concat demuxer
-    concat_list = beats_dir / "concat_beats.txt"
-    with open(concat_list, "w") as f:
-        for clip in rendered_clips:
-            f.write(f"file '{clip.resolve()}'\n")
+            fc = []
+            prev_stream = "[0:v]"
+            for i in range(len(rendered_clips) - 1):
+                next_in = f"[{i+1}:v]"
+                out_stream = f"[vx_{i+1}]" if i < len(rendered_clips) - 2 else "[vx_last]"
+                offset = cut_timestamps[i]
+                fc.append(f"{prev_stream}{next_in}xfade=transition=fadefast:duration={trans_dur}:offset={offset}{out_stream}")
+                prev_stream = out_stream
 
-    cmd_concat = [
-        "ffmpeg", "-y",
-        "-f", "concat",
-        "-safe", "0",
-        "-i", str(concat_list),
-        "-c", "copy",
-        str(out_stitched_video)
-    ]
+            # Unified subtle cinematic optical grading (contrast 1.04, saturation 1.05)
+            fc.append("[vx_last]eq=contrast=1.04:saturation=1.05[vout]")
 
-    try:
-        subprocess.run(cmd_concat, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-    except Exception:
-        # Fallback filter_complex concat if stream copy fails
-        inputs = []
-        fc = []
-        for i, c in enumerate(rendered_clips):
-            inputs.extend(["-i", str(c)])
-            fc.append(f"[{i}:v]")
-        fc.append(f"concat=n={len(rendered_clips)}:v=1:a=0[vout]")
-        cmd_filter = [
+            cmd_xfade = [
+                "ffmpeg", "-y",
+                *inputs,
+                "-filter_complex", ";".join(fc),
+                "-map", "[vout]",
+                "-c:v", "libx264",
+                "-preset", "fast",
+                "-crf", "18",
+                "-pix_fmt", "yuv420p",
+                "-t", f"{total_duration:.3f}",
+                str(out_stitched_video)
+            ]
+            subprocess.run(cmd_xfade, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+            if out_stitched_video.exists() and out_stitched_video.stat().st_size > 10000:
+                xfade_done = True
+                print(f"   ✨ Applied smooth xfade micro-transitions across {len(cut_timestamps)} cuts")
+        except Exception as e:
+            xfade_done = False
+
+    # 2. Resilient fallback to concat if xfade is unsuitable
+    if not xfade_done:
+        concat_list = beats_dir / "concat_beats.txt"
+        with open(concat_list, "w") as f:
+            for clip in rendered_clips:
+                f.write(f"file '{clip.resolve()}'\n")
+
+        cmd_concat = [
             "ffmpeg", "-y",
-            *inputs,
-            "-filter_complex", "".join(fc),
-            "-map", "[vout]",
+            "-f", "concat",
+            "-safe", "0",
+            "-i", str(concat_list),
+            "-vf", "eq=contrast=1.04:saturation=1.05",
             "-c:v", "libx264",
             "-preset", "fast",
             "-crf", "18",
             "-pix_fmt", "yuv420p",
+            "-t", f"{total_duration:.3f}",
             str(out_stitched_video)
         ]
-        subprocess.run(cmd_filter, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        try:
+            subprocess.run(cmd_concat, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        except Exception:
+            # Fallback filter_complex concat
+            inputs = []
+            fc = []
+            for i, c in enumerate(rendered_clips):
+                inputs.extend(["-i", str(c)])
+                fc.append(f"[{i}:v]")
+            fc.append(f"concat=n={len(rendered_clips)}:v=1:a=0,eq=contrast=1.04:saturation=1.05[vout]")
+            cmd_filter = [
+                "ffmpeg", "-y",
+                *inputs,
+                "-filter_complex", "".join(fc),
+                "-map", "[vout]",
+                "-c:v", "libx264",
+                "-preset", "fast",
+                "-crf", "18",
+                "-pix_fmt", "yuv420p",
+                "-t", f"{total_duration:.3f}",
+                str(out_stitched_video)
+            ]
+            subprocess.run(cmd_filter, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
 
     print(f"   ✓ [B-Roll Director] Successfully stitched {len(rendered_clips)} unique shots ({total_duration:.1f}s)")
-    return out_stitched_video
+    return out_stitched_video, cut_timestamps

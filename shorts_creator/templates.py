@@ -133,7 +133,7 @@ VIRAL_TEMPLATES = {
                 "Fact 2: It is an official sovereign language in Singapore and Sri Lanka, and is honored on global currencies.",
                 "Fact 3: Tholkappiyam, composed thousands of years ago, formulated comprehensive rules of linguistics and grammar that modern scholars still revere."
             ],
-            "cta": "Are you proud of our ancient linguistic heritage? Drop a comment below and subscribe!",
+            "cta": "Are you proud of our ancient linguistic heritage? Drop a comment below and remember...",
             "tags": ["#shorts", "#tamil", "#tamillanguage", "#history", "#ancientlanguage", "#culture"]
         },
         "ta": {
@@ -144,8 +144,32 @@ VIRAL_TEMPLATES = {
                 "இரண்டாவது: சிங்கப்பூர் மற்றும் இலங்கையில் தமிழ் அதிகாரப்பூர்வ ஆட்சி மொழியாகவும், வெளிநாட்டு ரூபாய் நோட்டுகளிலும் கம்பீரமாக அச்சிடப்பட்டுள்ளது.",
                 "மூன்றாவது: இரண்டாயிரத்து ஐந்நூறு ஆண்டுகளுக்கு முன்பே மொழியியலை துல்லியமாக வகுத்த தொல்காப்பிய இலக்கணம் நம்முடையது."
             ],
-            "cta": "தமிழ் எங்கள் உயிருக்கு நேர் என்று பெருமைப்படும் ஒவ்வொரு தமிழரும் உடனே சப்ஸ்கிரைப் செய்து பகிருங்கள்!",
+            "cta": "தமிழ் எங்கள் உயிருக்கு நேர் என்று பெருமைப்படும் ஒவ்வொரு தமிழரும் இதை பாருங்க, ஏன்னா...",
             "tags": ["#shorts", "#tamil", "#tamillanguage", "#தமிழ்", "#tamilfacts", "#tamilpride", "#செம்மொழி"]
+        }
+    },
+    "motivation": {
+        "en": {
+            "title": "The Brutal Truth About Never Giving Up",
+            "hook": "If you feel like giving up on your dreams today, remember this one brutal truth.",
+            "points": [
+                "Every single master was once a complete disaster who simply refused to quit when nobody believed in them.",
+                "Temporary pain only lasts for a few hours, but the quiet regret of quitting will haunt you for the rest of your life.",
+                "The obstacle in your path isn't there to stop you; it is there to prove just how unstoppable you really are."
+            ],
+            "cta": "So before you decide to throw in the towel, ask yourself why you started, because...",
+            "tags": ["#shorts", "#motivation", "#mindset", "#discipline", "#success", "#unstoppable"]
+        },
+        "ta": {
+            "title": "தோல்வியை உடைக்கும் அசுர நம்பிக்கை",
+            "hook": "உங்களுக்கு எல்லாத்தையும் கைவிட்டு விலகலாம்னு தோணுதா? இந்த ஒரு உண்மையை மட்டும் மறக்காதீங்க.",
+            "points": [
+                "இன்னைக்கு சிகரத்துல இருக்கிற எந்த ஒரு வெற்றியாளரும், ஒரு காலத்துல கைதட்டல் இல்லாத பாதையில தனியா போராடியவங்கதான்.",
+                "வலியும் சோர்வும் கொஞ்ச காலம் தான் இருக்கும்; ஆனா பாதியில விட்டுட்டு போனா வர்ற வலி காலம் முழுக்க உறுத்தும்.",
+                "உங்களுக்கு முன்னாடி நிக்கிற தடை உங்களை முடக்க வரல; உங்க உள்ளே இருக்கிற அசுர பலத்தை வெளியில கொண்டு வர வந்துருக்கு."
+            ],
+            "cta": "அதனால என்ன ஆனாலும் ஓடுறதை நிறுத்தாதீங்க, ஏன்னா...",
+            "tags": ["#shorts", "#tamil", "#tamilmotivation", "#vetri", "#mindset", "#motivation"]
         }
     }
 }
