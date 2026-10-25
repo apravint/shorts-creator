@@ -1,0 +1,91 @@
+[build-system]
+requires = ["setuptools>=65.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shorts-creator"
+version = "2.1.0"
+description = "Universal AI Video & YouTube Shorts Creator (Tamil & English)"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "Pravin", email = "apravint@gmail.com" }
+]
+keywords = [
+    "youtube-shorts", "video-generator", "ai-video", "tts", "edge-tts",
+    "tamil-tts", "hormozi-captions", "shotcraft", "ffmpeg", "mcp"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+dependencies = [
+    "edge-tts>=7.0.0",
+    "rich>=13.0.0",
+    "pillow>=10.0.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+fallback = [
+    "gTTS>=2.5.0",
+]
+ai = [
+    "google-genai>=1.0.0",
+    "fal-client>=0.5.0",
+    "replicate>=1.0.0",
+]
+caption = [
+    "faster-whisper>=1.0.0",
+]
+mcp = [
+    "mcp>=1.0.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.3.0",
+]
+all = [
+    "shorts-creator[fallback,ai,caption,mcp,dev]",
+]
+
+[project.scripts]
+shorts = "shorts_creator.cli:main"
+shorts-creator = "shorts_creator.cli:main"
+shorts-mcp = "shorts_creator.mcp_server:main"
+
+[project.urls]
+Homepage = "https://github.com/apravint/shorts-creator"
+Repository = "https://github.com/apravint/shorts-creator.git"
+Issues = "https://github.com/apravint/shorts-creator/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["shorts_creator*"]
+
+[tool.setuptools.package-data]
+shorts_creator = ["web_static/*", "web_static/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"

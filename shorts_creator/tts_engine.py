@@ -10,7 +10,10 @@ import asyncio
 import subprocess
 from typing import Dict, Any, List, Optional
 import edge_tts
-from gtts import gTTS
+try:
+    from gtts import gTTS
+except ImportError:
+    gTTS = None
 
 # Verified active voices
 VOICE_MAP = {
@@ -224,6 +227,9 @@ async def try_edge_tts_with_boundaries(
 
 def synthesize_with_gtts(text: str, lang: str, output_audio: str) -> bool:
     """Synthesize voice using Google TTS (gTTS)."""
+    if gTTS is None:
+        print("[Error] gTTS fallback requested but 'gtts' package is not installed. Install via: pip install gTTS")
+        return False
     try:
         tts = gTTS(text=text, lang=lang, slow=False)
         tts.save(output_audio)

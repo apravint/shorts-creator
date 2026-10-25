@@ -27,7 +27,7 @@ SEMANTIC_EMOJIS = {
     "விதை": "🌱", "முளை": "🌱", "விருட்சம்": "🌳", "மரம்": "🌳", "grow": "🌱",
     "growth": "📈", "உயர்வு": "📈", "rising": "🌅", "சிகரம்": "🏔️", "summit": "🏔️",
     # Mindset / Focus / Brain / Secret
-    "மூளை": "🧠", "சிந்தனை": "🧠", "mind": "🧠", "mindset": "🧠", "focus": "🎯",
+    "மூளை": "🧠", "சிந்தனை": "🧠", "mind": "🧠", "mindset": "🧠", "brain": "🧠", "focus": "🎯",
     "கவனம்": "🎯", "idea": "💡", "ரகசியம்": "🤫", "secret": "🤫", "think": "💡",
     # Danger / Fear / Obstacle / Fall
     "பயம்": "🛑", "தடை": "🚧", "இருள்": "🌑", "fail": "❌", "தோல்வி": "❌",
@@ -85,26 +85,38 @@ def split_into_bursts(text: str, max_words: int = 2) -> List[List[str]]:
 
 def get_palette_color(style: str) -> str:
     """Return BGR ASS hex color string (&HBBGGRR&)."""
+    # If user provided a raw ASS color or hex code
+    s = style.strip()
+    if s.startswith("&H") and s.endswith("&"):
+        return s
+    if s.startswith("#") and len(s) == 7:
+        r, g, b = s[1:3], s[3:5], s[5:7]
+        return f"&H{b}{g}{r}&"
+
     palettes = {
         "hormozi": "&H00FFFF&",      # Neon Yellow
+        "neon_glow": "&HFFFF00&",    # Neon Cyan with blur glow
         "neon-cyan": "&HFFFF00&",    # Neon Cyan
         "neon-green": "&H00FF00&",   # Emerald Green
         "fire-red": "&H0045FF&",     # Fire Red / Orange
         "gold": "&H00D7FF&",         # Rich Gold
         "purple-neon": "&HFF00FF&",  # Cyber Purple / Magenta
+        "sliding": "&H00FFFF&",      # Dual-line sliding window
         "white-classic": "&HFFFFFF&" # Crisp White
     }
-    return palettes.get(style.lower(), "&H00FFFF&")
+    return palettes.get(s.lower(), "&H00FFFF&")
 
 
 def generate_from_boundaries(
     boundaries: List[Dict[str, Any]],
     total_duration: float,
     highlight_color: str,
-    max_words: int = 2
+    max_words: int = 2,
+    style_mode: str = "hormozi"
 ) -> List[str]:
     """
     Generate kinetic ASS subtitle events using exact Edge-TTS word boundaries with auto-emojis.
+    Supports 'hormozi' (bounce pop), 'neon_glow' (blurred neon aura), and 'sliding' (dimmed context).
     """
     events = []
     # Filter valid words
@@ -112,12 +124,13 @@ def generate_from_boundaries(
     if not valid_items:
         return events
 
-    # Group into punchy 1-2 word bursts
+    # Group into punchy 1-2 word bursts (or 3-4 for sliding)
+    words_per_burst = 3 if style_mode == "sliding" else max_words
     bursts: List[List[Dict[str, Any]]] = []
     current_burst: List[Dict[str, Any]] = []
     for item in valid_items:
         current_burst.append(item)
-        if len(current_burst) >= max_words:
+        if len(current_burst) >= words_per_burst:
             bursts.append(current_burst)
             current_burst = []
     if current_burst:
@@ -144,18 +157,31 @@ def generate_from_boundaries(
             if w_end <= w_start:
                 w_end = w_start + 0.22
 
-            # Active word has pop bounce animation (\t scale), highlight color, and contextual emoji
+            # Active word animations based on style_mode
             styled_words = []
             for j, w in enumerate(burst_words):
                 if j == w_idx:
                     emoji = get_word_emoji(w)
                     w_display = f"{w} {emoji}" if emoji else w
-                    # Pop 18% larger on speech start, then settle smoothly back
-                    pop_tag = "{\\c" + highlight_color + "\\t(0,60,\\fscx118\\fscy118)\\t(60,130,\\fscx100\\fscy100)}"
-                    reset_tag = "{\\c&HFFFFFF&\\fscx100\\fscy100}"
+                    if style_mode == "neon_glow":
+                        # Neon blurred glow aura + 120% pop
+                        pop_tag = "{\\c" + highlight_color + "\\3c" + highlight_color + "\\blur5\\t(0,60,\\fscx120\\fscy120)\\t(60,130,\\fscx100\\fscy100)}"
+                        reset_tag = "{\\c&HFFFFFF&\\3c&H000000&\\blur0\\fscx100\\fscy100}"
+                    elif style_mode == "sliding":
+                        # Active highlighted, pop
+                        pop_tag = "{\\c" + highlight_color + "\\3c&H000000&\\fscx112\\fscy112}"
+                        reset_tag = "{\\c&HFFFFFF&\\fscx100\\fscy100}"
+                    else:
+                        # Hormozi style pop
+                        pop_tag = "{\\c" + highlight_color + "\\t(0,60,\\fscx118\\fscy118)\\t(60,130,\\fscx100\\fscy100)}"
+                        reset_tag = "{\\c&HFFFFFF&\\fscx100\\fscy100}"
                     styled_words.append(f"{pop_tag}{w_display}{reset_tag}")
                 else:
-                    styled_words.append(w)
+                    if style_mode == "sliding" and j < w_idx:
+                        # Preceding word in sliding burst is dimmed
+                        styled_words.append(f"{{\\alpha&H66&}}{w}{{\\alpha&H00&}}")
+                    else:
+                        styled_words.append(w)
 
             line_text = " ".join(styled_words)
             start_str = format_ass_time(w_start)
@@ -225,14 +251,17 @@ def generate_ass_subtitles(
     output_ass_path: str,
     lang: str = "en",
     style: str = "hormozi",
-    boundaries: Optional[List[Dict[str, Any]]] = None
+    boundaries: Optional[List[Dict[str, Any]]] = None,
+    font_size: int = 78,
+    margin_v: int = 520,
+    highlight_color: Optional[str] = None
 ) -> str:
     """
     Generate viral ASS subtitle file synchronized with speech duration.
     Uses Mukta Malar for guaranteed complex HarfBuzz ligature shaping (Tamil & English).
     """
     font_name = "Mukta Malar"
-    highlight_color = get_palette_color(style)
+    hl_color = get_palette_color(highlight_color or style)
 
     # ASS Header configuration:
     # MarginV 520 keeps text elevated above YouTube mobile Shorts UI elements (channel info, sound button)
@@ -247,16 +276,16 @@ PlayResY: 1920
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{font_name},78,&H00FFFFFF,&H000000FF,&H00000000,&H90000000,1,0,0,0,100,100,0,0,1,9,4,2,80,80,520,1
+Style: Default,{font_name},{font_size},&H00FFFFFF,&H000000FF,&H00000000,&H90000000,1,0,0,0,100,100,0,0,1,9,4,2,80,80,{margin_v},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
 
     if boundaries and len(boundaries) > 0:
-        events = generate_from_boundaries(boundaries, total_duration, highlight_color, max_words=2)
+        events = generate_from_boundaries(boundaries, total_duration, hl_color, max_words=2, style_mode=style)
     else:
-        events = generate_from_sentences(sentences, total_duration, highlight_color, max_words=2)
+        events = generate_from_sentences(sentences, total_duration, hl_color, max_words=2)
 
     os.makedirs(os.path.dirname(output_ass_path), exist_ok=True)
     with open(output_ass_path, "w", encoding="utf-8") as f:

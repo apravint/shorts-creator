@@ -123,7 +123,9 @@ def run_pipeline(
     generator: str = "auto",
     rate: str = None,
     output_path: str = None,
-    harness: bool = False
+    harness: bool = False,
+    encoder: str = "auto",
+    highlight_color: str = None
 ):
     print_banner()
 
@@ -179,7 +181,8 @@ def run_pipeline(
             output_ass_path=ass_path,
             lang=detected_lang,
             style=style,
-            boundaries=tts_data.get("boundaries", [])
+            boundaries=tts_data.get("boundaries", []),
+            highlight_color=highlight_color
         )
         progress.update(task_sub, completed=1)
 
@@ -209,7 +212,8 @@ def run_pipeline(
             is_cinema=cinema,
             ambient_vibe=ambient,
             sfx_cue=sfx,
-            visual_mode=generator
+            visual_mode=generator,
+            encoder=encoder
         )
         progress.update(task_video, completed=1)
 
@@ -390,7 +394,21 @@ def main():
     create_p.add_argument("--rate", default=None, help="Speech rate / pacing (e.g. +8%%, +12%%)")
     create_p.add_argument("--no-thumb", action="store_true", help="Disable high-CTR thumbnail generation")
     create_p.add_argument("--harness", action="store_true", help="Run with Harness² cyclic verification loop (Plan -> Act -> Verify -> Reflect)")
+    create_p.add_argument("--encoder", choices=["auto", "nvenc", "vaapi", "videotoolbox", "qsv", "cpu"], default="auto", help="Hardware video encoder")
+    create_p.add_argument("--highlight-color", default=None, help="Custom caption highlight color (e.g. #00FFFF)")
     create_p.add_argument("-o", "--out", help="Output MP4 file path")
+
+    # Command: caption
+    caption_p = subparsers.add_parser("caption", help="Auto-transcribe and burn animated viral captions into an existing video")
+    caption_p.add_argument("video_path", help="Path to input video (MP4/MOV)")
+    caption_p.add_argument("-s", "--style", choices=["hormozi", "neon_glow", "sliding", "neon-cyan", "fire-red"], default="hormozi", help="Caption animation style")
+    caption_p.add_argument("-l", "--lang", help="Spoken language code (e.g. en, ta)")
+    caption_p.add_argument("--highlight-color", default=None, help="Custom highlight color (e.g. #00FFFF or &H00FFFF&)")
+    caption_p.add_argument("--encoder", choices=["auto", "nvenc", "vaapi", "videotoolbox", "qsv", "cpu"], default="auto", help="Video encoder")
+    caption_p.add_argument("-o", "--out", help="Output MP4 video path")
+
+    # Command: mcp
+    subparsers.add_parser("mcp", help="Launch Model Context Protocol (MCP) server for AI coding agents")
 
     # Command: brag
     brag_p = subparsers.add_parser("brag", help="Inspect a codebase/repo and generate an explosive developer launch trailer")
@@ -580,8 +598,24 @@ def main():
             generator=args.generator,
             rate=args.rate,
             output_path=args.out,
-            harness=getattr(args, "harness", False)
+            harness=getattr(args, "harness", False),
+            encoder=getattr(args, "encoder", "auto"),
+            highlight_color=getattr(args, "highlight_color", None)
         )
+    elif args.command == "caption":
+        from shorts_creator.caption_engine import auto_caption_video
+        print_banner()
+        auto_caption_video(
+            input_video=args.video_path,
+            output_video=args.out,
+            style=args.style,
+            lang=args.lang,
+            highlight_color=args.highlight_color,
+            encoder=args.encoder
+        )
+    elif args.command == "mcp":
+        from shorts_creator.mcp_server import main as mcp_main
+        mcp_main()
     elif args.command == "exploded":
         from shorts_creator.exploded_engine import ExplodedCADVideoEngine, PIXEL_TENSOR_HARDWARE_PRESET
         print_banner()

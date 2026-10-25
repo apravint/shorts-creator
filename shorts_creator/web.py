@@ -257,6 +257,29 @@ class ShortsWebHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(resp).encode("utf-8"))
             return
 
+        if path == "/api/caption":
+            from shorts_creator.caption_engine import auto_caption_video
+            video_path = payload.get("video_path", "")
+            style = payload.get("style", "hormozi")
+            lang = payload.get("lang")
+            hl_color = payload.get("highlight_color")
+            try:
+                out_path = auto_caption_video(video_path, style=style, lang=lang, highlight_color=hl_color)
+                resp = {
+                    "success": True,
+                    "video_path": out_path,
+                    "video_url": f"/api/video-stream?path={urllib.parse.quote(out_path)}"
+                }
+            except Exception as e:
+                resp = {"success": False, "error": str(e)}
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_cors_headers()
+            self.end_headers()
+            self.wfile.write(json.dumps(resp).encode("utf-8"))
+            return
+
         self.send_error(404, "Not Found")
 
     def serve_file(self, file_path: str, content_type: str):
@@ -311,6 +334,7 @@ def execute_render_job(job_id: str, payload: Dict[str, Any]):
         ambient = payload.get("ambient")
         sfx = payload.get("sfx")
         thumb = payload.get("thumb", True)
+        progress_bar = payload.get("progress_bar", True)
 
         log("Step 1: Preparing script structure...")
         script_data = prepare_script(topic=topic, custom_script=script, lang=lang)
@@ -338,7 +362,8 @@ def execute_render_job(job_id: str, payload: Dict[str, Any]):
             output_ass_path=ass_path,
             lang=detected_lang,
             style=style,
-            boundaries=tts_data.get("boundaries", [])
+            boundaries=tts_data.get("boundaries", []),
+            highlight_color=payload.get("highlight_color")
         )
 
         final_bgm = None
@@ -368,7 +393,8 @@ def execute_render_job(job_id: str, payload: Dict[str, Any]):
             is_cinema=cinema,
             ambient_vibe=ambient,
             sfx_cue=sfx,
-            visual_mode=payload.get("generator", "auto")
+            visual_mode=payload.get("generator", "auto"),
+            encoder=payload.get("encoder", "auto")
         )
 
         thumb_path = None

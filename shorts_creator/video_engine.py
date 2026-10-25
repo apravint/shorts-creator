@@ -19,6 +19,51 @@ from .b_roll_engine import build_multi_beat_montage
 ASSETS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets"))
 FONTS_DIR = os.path.join(ASSETS_DIR, "fonts")
 
+_DETECTED_ENCODER_INFO: Optional[tuple] = None
+
+
+def probe_hardware_encoder(encoder_name: str) -> bool:
+    """Dry-run probe to test if an FFmpeg encoder works on this specific hardware."""
+    try:
+        cmd = [
+            "ffmpeg", "-nostdin", "-y", "-v", "quiet",
+            "-f", "lavfi", "-i", "color=c=black:s=64x64:d=0.05",
+            "-c:v", encoder_name,
+            "-f", "null", "-"
+        ]
+        res = subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1.5)
+        return res.returncode == 0
+    except Exception:
+        return False
+
+
+def detect_optimal_video_encoder(preferred: str = "auto") -> tuple:
+    """
+    Detects hardware video encoders (NVIDIA NVENC, Apple VideoToolbox, Intel/AMD VAAPI, QSV)
+    with seamless fallback to CPU libx264.
+    Returns: (encoder_name, list_of_ffmpeg_flags)
+    """
+    global _DETECTED_ENCODER_INFO
+    if preferred == "auto" and _DETECTED_ENCODER_INFO is not None:
+        return _DETECTED_ENCODER_INFO
+
+    pref = preferred.lower().strip() if preferred else "auto"
+
+    if pref in ("nvenc", "h264_nvenc") or (pref == "auto" and probe_hardware_encoder("h264_nvenc")):
+        info = ("h264_nvenc", ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", "20", "-pix_fmt", "yuv420p"])
+    elif pref in ("videotoolbox", "h264_videotoolbox") or (pref == "auto" and probe_hardware_encoder("h264_videotoolbox")):
+        info = ("h264_videotoolbox", ["-c:v", "h264_videotoolbox", "-q:v", "65", "-pix_fmt", "yuv420p"])
+    elif pref in ("vaapi", "h264_vaapi") or (pref == "auto" and probe_hardware_encoder("h264_vaapi")):
+        info = ("h264_vaapi", ["-c:v", "h264_vaapi", "-qp", "20"])
+    elif pref in ("qsv", "h264_qsv") or (pref == "auto" and probe_hardware_encoder("h264_qsv")):
+        info = ("h264_qsv", ["-c:v", "h264_qsv", "-global_quality", "20", "-pix_fmt", "yuv420p"])
+    else:
+        info = ("libx264", ["-c:v", "libx264", "-preset", "fast", "-crf", "19", "-pix_fmt", "yuv420p"])
+
+    if preferred == "auto":
+        _DETECTED_ENCODER_INFO = info
+    return info
+
 
 def build_procedural_background_filter(bg_type: str, duration: float, width: int = 1080, height: int = 1920) -> str:
     """Fallback FFmpeg filtergraph for procedural motion background."""
@@ -59,7 +104,8 @@ def assemble_shorts_video(
     is_cinema: bool = False,
     ambient_vibe: Optional[str] = None,
     sfx_cue: Optional[str] = None,
-    visual_mode: str = "auto"
+    visual_mode: str = "auto",
+    encoder: str = "auto"
 ) -> str:
     """
     Assemble the complete short video with studio-grade audio mastering,
@@ -198,12 +244,11 @@ def assemble_shorts_video(
     # Video & Audio mapping
     temp_rendered = os.path.join(temp_dir, "base_rendered.mp4") if avatar_img else output_path
 
+    enc_name, enc_flags = detect_optimal_video_encoder(encoder)
+
     cmd.extend([
         "-vf", video_filter,
-        "-c:v", "libx264",
-        "-preset", "fast",
-        "-crf", "19",
-        "-pix_fmt", "yuv420p",
+        *enc_flags,
         "-c:a", "copy",
         "-t", str(duration),
         temp_rendered

@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  web-studio:
+    build: .
+    container_name: shorts-creator-web
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./output:/app/output
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - FAL_KEY=${FAL_KEY:-}
+      - REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN:-}
+    entrypoint: ["shorts", "web", "--port", "8080", "--host", "0.0.0.0"]
+    restart: unless-stopped
+
+  mcp-server:
+    build: .
+    container_name: shorts-creator-mcp
+    volumes:
+      - ./output:/app/output
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+    entrypoint: ["shorts-mcp"]
+    stdin_open: true
+    tty: true

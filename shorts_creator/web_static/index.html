@@ -124,6 +124,12 @@
       box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
     }
 
+    .mode-tab.active-caption {
+      background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+    }
+
     main {
       flex: 1;
       max-width: 1440px;
@@ -588,6 +594,9 @@
       <button class="mode-tab" id="tab-film" onclick="switchAppMode('film')">
         <span>🎬 Animated Film Studio</span>
       </button>
+      <button class="mode-tab" id="tab-caption" onclick="switchAppMode('caption')">
+        <span>🎙️ Auto-Caption Video</span>
+      </button>
     </div>
   </header>
 
@@ -761,24 +770,55 @@
             </div>
           </div>
 
+          <div class="grid-2">
+            <div class="input-group">
+              <label>Caption Animation Style (Subtitles 2.0)</label>
+              <select id="caption-style-select" onchange="updateCaptionPreview()">
+                <option value="hormozi" selected>Hormozi Pop (Active Word Jump)</option>
+                <option value="neon_glow">Neon Glow Aura (Cinematic Halo Blur)</option>
+                <option value="sliding">Dual-Line Sliding Window (Dimmed Context)</option>
+              </select>
+            </div>
+
+            <div class="input-group">
+              <label>Hardware Acceleration Encoder</label>
+              <select id="encoder-select">
+                <option value="auto" selected>⚡ Auto-Detect (NVENC / VAAPI / Apple / CPU)</option>
+                <option value="h264_nvenc">🟢 NVIDIA NVENC (GeForce / RTX GPU)</option>
+                <option value="h264_vaapi">🔵 Intel / AMD VA-API (Linux Hardware)</option>
+                <option value="h264_videotoolbox">🍎 Apple Silicon VideoToolbox (M1/M2/M3/M4)</option>
+                <option value="h264_qsv">⚪ Intel QuickSync (QSV)</option>
+                <option value="libx264">💻 CPU Software Encoding (libx264)</option>
+              </select>
+            </div>
+          </div>
+
           <!-- Subtitle Styles -->
-          <label>Caption Style & Highlight Color</label>
-          <div class="style-swatches">
-            <div class="swatch-card active" onclick="setSubtitleStyle('hormozi', '#ffff00')">
-              <div style="color: #ffff00; font-weight: 800;">HORMOZI</div>
-              <div style="font-size: 0.72rem; color: var(--text-muted);">Neon Yellow</div>
+          <label>Word Highlight Color</label>
+          <div class="style-swatches" id="highlight-swatches">
+            <div class="swatch-card active" onclick="setHighlightColor('#ffff00', this)">
+              <div style="color: #ffff00; font-weight: 800;">YELLOW</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">#FFFF00</div>
             </div>
-            <div class="swatch-card" onclick="setSubtitleStyle('neon-cyan', '#00ffff')">
+            <div class="swatch-card" onclick="setHighlightColor('#00ffff', this)">
               <div style="color: #00ffff; font-weight: 800;">CYBER</div>
-              <div style="font-size: 0.72rem; color: var(--text-muted);">Neon Cyan</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">#00FFFF</div>
             </div>
-            <div class="swatch-card" onclick="setSubtitleStyle('gold', '#ffd700')">
-              <div style="color: #ffd700; font-weight: 800;">ROYAL</div>
-              <div style="font-size: 0.72rem; color: var(--text-muted);">Pure Gold</div>
+            <div class="swatch-card" onclick="setHighlightColor('#ffd700', this)">
+              <div style="color: #ffd700; font-weight: 800;">GOLD</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">#FFD700</div>
             </div>
-            <div class="swatch-card" onclick="setSubtitleStyle('purple-neon', '#ff00ff')">
-              <div style="color: #ff00ff; font-weight: 800;">NEON</div>
-              <div style="font-size: 0.72rem; color: var(--text-muted);">Purple</div>
+            <div class="swatch-card" onclick="setHighlightColor('#ff00ff', this)">
+              <div style="color: #ff00ff; font-weight: 800;">PURPLE</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">#FF00FF</div>
+            </div>
+            <div class="swatch-card" onclick="setHighlightColor('#05ffa1', this)">
+              <div style="color: #05ffa1; font-weight: 800;">EMERALD</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">#05FFA1</div>
+            </div>
+            <div class="swatch-card" onclick="setHighlightColor('#ff4500', this)">
+              <div style="color: #ff4500; font-weight: 800;">FIRE</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">#FF4500</div>
             </div>
           </div>
         </div>
@@ -886,6 +926,75 @@
         </button>
       </div>
 
+      <!-- ==================== MODE 3: AUTO-CAPTION STUDIO ==================== -->
+      <div id="mode-caption-container" style="display: none;">
+        <div class="card">
+          <div class="card-title">
+            <div class="step-badge" style="border-color: #10b981; color: #10b981; background: rgba(16, 185, 129, 0.15);">🎙️</div>
+            <span>Auto-Caption Any Existing Video</span>
+          </div>
+
+          <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 16px; line-height: 1.5;">
+            Extract audio with FFmpeg, generate word-level timestamps using Whisper speech recognition, and burn dynamic animated kinetic subtitles directly into your video with hardware acceleration.
+          </p>
+
+          <div class="input-group">
+            <label>Input Video File Path (Local or URL)</label>
+            <input type="text" id="caption-video-input" placeholder="/home/apravint/my_raw_clip.mp4">
+          </div>
+
+          <div class="grid-2">
+            <div class="input-group">
+              <label>Caption Style</label>
+              <select id="caption-mode-style" onchange="updateCaptionModePreview()">
+                <option value="hormozi" selected>Hormozi Pop (Bounce Scale)</option>
+                <option value="neon_glow">Neon Glow Aura (Cinematic Halo)</option>
+                <option value="sliding">Dual-Line Sliding Window</option>
+              </select>
+            </div>
+
+            <div class="input-group">
+              <label>Audio Language</label>
+              <select id="caption-mode-lang">
+                <option value="" selected>Auto-Detect Language</option>
+                <option value="en">English</option>
+                <option value="ta">தமிழ் (Tamil)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label>Active Word Highlight Color</label>
+            <div class="style-swatches" id="caption-color-swatches">
+              <div class="swatch-card active" onclick="setCaptionColor('#00ffff', this)">
+                <div style="color: #00ffff; font-weight: 800;">CYAN</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">#00FFFF</div>
+              </div>
+              <div class="swatch-card" onclick="setCaptionColor('#ffff00', this)">
+                <div style="color: #ffff00; font-weight: 800;">YELLOW</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">#FFFF00</div>
+              </div>
+              <div class="swatch-card" onclick="setCaptionColor('#05ffa1', this)">
+                <div style="color: #05ffa1; font-weight: 800;">EMERALD</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">#05FFA1</div>
+              </div>
+              <div class="swatch-card" onclick="setCaptionColor('#ffd700', this)">
+                <div style="color: #ffd700; font-weight: 800;">GOLD</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">#FFD700</div>
+              </div>
+              <div class="swatch-card" onclick="setCaptionColor('#ff00ff', this)">
+                <div style="color: #ff00ff; font-weight: 800;">PURPLE</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">#FF00FF</div>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-block btn-giant" style="background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); color: #fff; box-shadow: 0 4px 18px rgba(16, 185, 129, 0.4);" type="button" onclick="startAutoCaption()">
+            <span>🔥 Burn Animated Captions Into Video</span>
+          </button>
+        </div>
+      </div>
+
     </div>
 
     <!-- RIGHT COLUMN: SIMULATOR & VIDEO OUTPUT -->
@@ -961,10 +1070,12 @@
   <audio id="audio-preview" style="display: none;"></audio>
 
   <script>
-    let appMode = 'shorts'; // 'shorts' or 'film'
+    let appMode = 'shorts'; // 'shorts', 'film', or 'caption'
     let currentLang = 'en';
     let filmLang = 'en';
     let currentStyle = 'hormozi';
+    let highlightColor = '#ffff00';
+    let captionHighlightColor = '#00ffff';
     let lastRenderedPath = '';
     let currentScreenplay = null;
 
@@ -984,8 +1095,10 @@
       appMode = mode;
       const tabShorts = document.getElementById('tab-shorts');
       const tabFilm = document.getElementById('tab-film');
+      const tabCaption = document.getElementById('tab-caption');
       const shortsBox = document.getElementById('mode-shorts-container');
       const filmBox = document.getElementById('mode-film-container');
+      const captionBox = document.getElementById('mode-caption-container');
       const simPhone = document.getElementById('sim-shorts-frame');
       const simCinema = document.getElementById('sim-cinema-frame');
       const simHead = document.getElementById('simulator-heading');
@@ -995,8 +1108,10 @@
       if (mode === 'film') {
         tabShorts.className = 'mode-tab';
         tabFilm.className = 'mode-tab active-film';
+        tabCaption.className = 'mode-tab';
         shortsBox.style.display = 'none';
         filmBox.style.display = 'block';
+        captionBox.style.display = 'none';
         badge.innerText = '🎬';
         badge.style.background = 'var(--film-gradient)';
         title.innerText = 'FilmEngine AI';
@@ -1005,10 +1120,26 @@
         if (!currentScreenplay) {
           applyFilmTheme('cyberpunk');
         }
+      } else if (mode === 'caption') {
+        tabShorts.className = 'mode-tab';
+        tabFilm.className = 'mode-tab';
+        tabCaption.className = 'mode-tab active-caption';
+        shortsBox.style.display = 'none';
+        filmBox.style.display = 'none';
+        captionBox.style.display = 'block';
+        badge.innerText = '🎙️';
+        badge.style.background = 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)';
+        title.innerText = 'Auto-Caption Studio';
+        simHead.innerText = '🎙️ Kinetic Subtitle Simulator';
+        simCinema.style.display = 'none';
+        simPhone.style.display = 'flex';
+        updateCaptionModePreview();
       } else {
         tabFilm.className = 'mode-tab';
+        tabCaption.className = 'mode-tab';
         tabShorts.className = 'mode-tab active-shorts';
         filmBox.style.display = 'none';
+        captionBox.style.display = 'none';
         shortsBox.style.display = 'block';
         badge.innerText = '⚡';
         badge.style.background = 'var(--accent-gradient)';
@@ -1016,6 +1147,7 @@
         simHead.innerText = '📱 9:16 Shorts Simulator';
         simCinema.style.display = 'none';
         simPhone.style.display = 'flex';
+        updateCaptionPreview();
       }
     }
 
@@ -1199,10 +1331,59 @@
       }
     }
 
-    function setSubtitleStyle(style, color) {
-      currentStyle = style;
-      document.querySelectorAll('.swatch-card').forEach(el => el.classList.remove('active'));
-      event.currentTarget.classList.add('active');
+    function setHighlightColor(color, el) {
+      highlightColor = color;
+      document.querySelectorAll('#highlight-swatches .swatch-card').forEach(s => s.classList.remove('active'));
+      if (el) el.classList.add('active');
+      updateCaptionPreview();
+    }
+
+    function setCaptionColor(color, el) {
+      captionHighlightColor = color;
+      document.querySelectorAll('#caption-color-swatches .swatch-card').forEach(s => s.classList.remove('active'));
+      if (el) el.classList.add('active');
+      updateCaptionModePreview();
+    }
+
+    function updateCaptionPreview() {
+      const styleSelect = document.getElementById('caption-style-select');
+      const style = styleSelect ? styleSelect.value : 'hormozi';
+      const highlightEl = document.getElementById('sim-highlight');
+      if (!highlightEl) return;
+      highlightEl.style.color = highlightColor;
+
+      if (style === 'neon_glow') {
+        highlightEl.style.textShadow = `0 0 10px ${highlightColor}, 0 0 20px ${highlightColor}, 0 0 35px ${highlightColor}`;
+        highlightEl.style.animation = 'none';
+      } else if (style === 'sliding') {
+        highlightEl.style.textShadow = 'none';
+        highlightEl.style.animation = 'none';
+      } else {
+        highlightEl.style.textShadow = 'none';
+        highlightEl.style.animation = 'pulse 1s infinite alternate';
+      }
+    }
+
+    function updateCaptionModePreview() {
+      const textEl = document.getElementById('sim-text');
+      if (textEl) {
+        textEl.innerHTML = `AUTO-CAPTION <span class="caption-highlight" id="sim-highlight" style="color: ${captionHighlightColor};">KINETIC ENGINE</span>`;
+      }
+      const styleSelect = document.getElementById('caption-mode-style');
+      const style = styleSelect ? styleSelect.value : 'hormozi';
+      const highlightEl = document.getElementById('sim-highlight');
+      if (!highlightEl) return;
+
+      if (style === 'neon_glow') {
+        highlightEl.style.textShadow = `0 0 10px ${captionHighlightColor}, 0 0 20px ${captionHighlightColor}, 0 0 35px ${captionHighlightColor}`;
+        highlightEl.style.animation = 'none';
+      } else if (style === 'sliding') {
+        highlightEl.style.textShadow = 'none';
+        highlightEl.style.animation = 'none';
+      } else {
+        highlightEl.style.textShadow = 'none';
+        highlightEl.style.animation = 'pulse 1s infinite alternate';
+      }
     }
 
     function playVoicePreview(type) {
@@ -1219,13 +1400,17 @@
       const points = document.getElementById('script-points').value.split('\n').filter(p => p.trim());
       const cta = document.getElementById('script-cta').value;
       const fullText = [hook, ...points, cta].join(' ');
+      const styleVal = document.getElementById('caption-style-select') ? document.getElementById('caption-style-select').value : 'hormozi';
+      const encoderVal = document.getElementById('encoder-select') ? document.getElementById('encoder-select').value : 'auto';
 
       const payload = {
         topic: topic,
         script: fullText,
         lang: currentLang,
         voice: document.getElementById('voice-select').value,
-        style: currentStyle,
+        style: styleVal,
+        highlight_color: highlightColor,
+        encoder: encoderVal,
         bg_type: document.getElementById('bg-video-select').value,
         bgm_vibe: document.getElementById('bgm-vibe-select').value,
         progress_bar: document.getElementById('progress-bar-select').value === 'true',
@@ -1245,6 +1430,42 @@
       .then(res => res.json())
       .then(data => {
         if (data.job_id) pollJob(data.job_id);
+      });
+    }
+
+    function startAutoCaption() {
+      const videoPath = document.getElementById('caption-video-input').value.trim();
+      if (!videoPath) {
+        alert('Please provide a path to an existing video file.');
+        return;
+      }
+      const style = document.getElementById('caption-mode-style').value;
+      const lang = document.getElementById('caption-mode-lang').value || null;
+
+      openModal('Transcribing Speech & Burning Captions...', false);
+
+      fetch('/api/caption', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          video_path: videoPath,
+          style: style,
+          lang: lang,
+          highlight_color: captionHighlightColor
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        closeModal();
+        if (data.success) {
+          showResult(data.video_path, data.video_url);
+        } else {
+          alert('Caption error: ' + (data.error || 'Failed to auto-caption video'));
+        }
+      })
+      .catch(err => {
+        closeModal();
+        alert('Caption error: ' + err);
       });
     }
 
