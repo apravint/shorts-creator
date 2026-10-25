@@ -333,7 +333,7 @@ def interactive_wizard():
     # 5. Caption Style
     style = Prompt.ask(
         "Subtitle Color Style",
-        choices=["hormozi", "neon-cyan", "neon-green", "fire-red", "gold", "purple-neon", "white-classic"],
+        choices=["hormozi", "neon_glow", "sliding", "neon-cyan", "neon-green", "fire-red", "gold", "purple-neon", "white-classic"],
         default="hormozi"
     )
 
@@ -378,7 +378,7 @@ def main():
     create_p.add_argument("-v", "--voice", help="Edge-TTS voice identifier")
     create_p.add_argument("-s", "--script", help="Custom script text directly")
     create_p.add_argument("--script-file", help="Path to text file containing script")
-    create_p.add_argument("--style", choices=["hormozi", "neon-cyan", "neon-green", "fire-red", "gold", "purple-neon", "white-classic"], default="hormozi", help="Subtitle highlight style")
+    create_p.add_argument("--style", choices=["hormozi", "neon_glow", "sliding", "neon-cyan", "neon-green", "fire-red", "gold", "purple-neon", "white-classic"], default="hormozi", help="Subtitle highlight style")
     create_p.add_argument("--recipe", choices=["hero_reveal", "macro_orbit", "speed_ramp", "isometric_exploded", "dutch_angle_tension", "terminal_glitch_scan", "split_comparison", "broll_whip_pan"], default=None, help="Shotcraft cinematic recipe card")
     create_p.add_argument("--avatar", help="Path to portrait image for digital human talking presenter PiP")
     create_p.add_argument("--cinema", action="store_true", help="Compile as 2.39:1 Hollywood Scope letterbox")
