@@ -9,7 +9,7 @@ import wave
 import struct
 import random
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 
 
 class SoundEffectsSynthesizer:
