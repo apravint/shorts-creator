@@ -13,6 +13,7 @@ import shutil
 import threading
 import urllib.parse
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+from pathlib import Path
 from typing import Dict, Any
 
 from shorts_creator.script_gen import prepare_script, get_procedural_template
@@ -25,6 +26,18 @@ from shorts_creator.cli import get_default_output_dir
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "web_static")
 JOB_REGISTRY: Dict[str, Dict[str, Any]] = {}
+CAPTIONED_VIDEOS = set()
+
+
+def is_servable_video(video_path: str) -> bool:
+    """Only videos this server produced may be streamed, never an arbitrary file named in the URL."""
+    real = os.path.realpath(video_path)
+    if not (real.lower().endswith((".mp4", ".mov", ".webm")) and os.path.isfile(real)):
+        return False
+    if real in CAPTIONED_VIDEOS:
+        return True
+    roots = [os.path.join(os.getcwd(), "output"), get_default_output_dir()]
+    return any(real.startswith(os.path.realpath(root) + os.sep) for root in roots)
 
 
 class ShortsWebHandler(BaseHTTPRequestHandler):
@@ -33,9 +46,13 @@ class ShortsWebHandler(BaseHTTPRequestHandler):
         pass
 
     def send_cors_headers(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        # The studio page is same-origin; other websites get no cross-origin access to this local server
+        pass
+
+    def is_cross_origin(self) -> bool:
+        """Browsers attach Origin to cross-site POSTs, which CORS alone does not stop from executing."""
+        origin = self.headers.get("Origin")
+        return bool(origin) and urllib.parse.urlparse(origin).netloc != self.headers.get("Host")
 
     def do_OPTIONS(self):
         self.send_response(200)
@@ -119,7 +136,7 @@ class ShortsWebHandler(BaseHTTPRequestHandler):
         # 5. Video Stream API
         if path == "/api/video-stream":
             video_path = params.get("path", [""])[0]
-            if os.path.isfile(video_path):
+            if is_servable_video(video_path):
                 self.serve_file(video_path, "video/mp4")
             else:
                 self.send_error(404, "Video file not found")
@@ -128,6 +145,10 @@ class ShortsWebHandler(BaseHTTPRequestHandler):
         self.send_error(404, "Not Found")
 
     def do_POST(self):
+        if self.is_cross_origin():
+            self.send_error(403, "Cross-origin requests are not allowed")
+            return
+
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
 
@@ -265,6 +286,7 @@ class ShortsWebHandler(BaseHTTPRequestHandler):
             hl_color = payload.get("highlight_color")
             try:
                 out_path = auto_caption_video(video_path, style=style, lang=lang, highlight_color=hl_color)
+                CAPTIONED_VIDEOS.add(os.path.realpath(out_path))
                 resp = {
                     "success": True,
                     "video_path": out_path,
@@ -363,7 +385,8 @@ def execute_render_job(job_id: str, payload: Dict[str, Any]):
             lang=detected_lang,
             style=style,
             boundaries=tts_data.get("boundaries", []),
-            highlight_color=payload.get("highlight_color")
+            highlight_color=payload.get("highlight_color"),
+            hook_text=script_data.get("screen_hook")
         )
 
         final_bgm = None
@@ -394,7 +417,8 @@ def execute_render_job(job_id: str, payload: Dict[str, Any]):
             ambient_vibe=ambient,
             sfx_cue=sfx,
             visual_mode=payload.get("generator", "auto"),
-            encoder=payload.get("encoder", "auto")
+            encoder=payload.get("encoder", "auto"),
+            visual_queries=script_data.get("visuals")
         )
 
         thumb_path = None
@@ -463,7 +487,7 @@ def execute_film_render_job(job_id: str, payload: Dict[str, Any]):
 
 
 
-def start_web_server(port: int = 8080, host: str = "0.0.0.0"):
+def start_web_server(port: int = 8080, host: str = "127.0.0.1"):
     server_address = (host, port)
     httpd = ThreadingHTTPServer(server_address, ShortsWebHandler)
     url = f"http://localhost:{port}"

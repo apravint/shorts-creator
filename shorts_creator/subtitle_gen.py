@@ -3,13 +3,14 @@ Animated Subtitle Engine (Hormozi / Viral Shorts Style).
 Generates Advanced SubStation Alpha (.ass) subtitles with:
 - True millisecond word-by-word highlight synchronization
 - Micro-bounce pop animations on spoken words (\\fscx, \\fscy)
-- Contextual semantic emoji detection for Tamil and English
+- Large on-screen hook text for the opening seconds
 - Ultra-punchy 1-2 word rapid kinetic bursts
 - Full Tamil Unicode HarfBuzz complex ligature shaping
 - Multi-palette viral neon themes
 """
 
 import os
+import re
 from typing import List, Dict, Any, Optional
 
 # Contextual Semantic Emoji Map (Tamil & English)
@@ -49,10 +50,29 @@ def get_word_emoji(word: str) -> str:
     clean_w = word.lower().strip(".,!?:;\"'()[]")
     if clean_w in SEMANTIC_EMOJIS:
         return SEMANTIC_EMOJIS[clean_w]
+    # Only Tamil matches by substring (attached suffixes); in English "king" would hit "thinking"
     for k, emoji in SEMANTIC_EMOJIS.items():
-        if k in clean_w and len(k) >= 3:
+        if not k.isascii() and k in clean_w and len(k) >= 3:
             return emoji
     return ""
+
+
+def clean_caption_word(word: str, uppercase: bool = True) -> str:
+    """Prepare a spoken word for burn-in: strip ASS control characters and trailing soft punctuation."""
+    cleaned = re.sub(r"[{}\\]", "", word).rstrip(".,;:")
+    return cleaned.upper() if uppercase else cleaned
+
+
+def build_hook_event(hook_text: str, highlight_color: str, duration: float = 2.6) -> str:
+    """Large on-screen hook for the opening seconds, split across two lines with the payoff highlighted."""
+    words = re.sub(r"[{}\\]", "", hook_text).upper().split()
+    if not words:
+        return ""
+    split_at = max(1, len(words) // 2)
+    first, second = " ".join(words[:split_at]), " ".join(words[split_at:])
+    entrance = "{\\fad(0,180)\\fscx84\\fscy84\\t(0,150,\\fscx100\\fscy100)}"
+    body = f"{first}\\N{{\\c{highlight_color}}}{second}" if second else first
+    return f"Dialogue: 1,{format_ass_time(0)},{format_ass_time(duration)},Hook,,0,0,0,,{entrance}{body}"
 
 
 def format_ass_time(seconds: float) -> str:
@@ -137,7 +157,7 @@ def generate_from_boundaries(
         bursts.append(current_burst)
 
     for b_idx, burst in enumerate(bursts):
-        burst_words = [item["word"] for item in burst]
+        burst_words = [clean_caption_word(item["word"], uppercase=style_mode != "sliding") for item in burst]
         burst_len = len(burst)
 
         for w_idx in range(burst_len):
@@ -161,8 +181,6 @@ def generate_from_boundaries(
             styled_words = []
             for j, w in enumerate(burst_words):
                 if j == w_idx:
-                    emoji = get_word_emoji(w)
-                    w_display = f"{w} {emoji}" if emoji else w
                     if style_mode == "neon_glow":
                         # Neon blurred glow aura + 120% pop
                         pop_tag = "{\\c" + highlight_color + "\\3c" + highlight_color + "\\blur5\\t(0,60,\\fscx120\\fscy120)\\t(60,130,\\fscx100\\fscy100)}"
@@ -175,7 +193,7 @@ def generate_from_boundaries(
                         # Hormozi style pop
                         pop_tag = "{\\c" + highlight_color + "\\t(0,60,\\fscx118\\fscy118)\\t(60,130,\\fscx100\\fscy100)}"
                         reset_tag = "{\\c&HFFFFFF&\\fscx100\\fscy100}"
-                    styled_words.append(f"{pop_tag}{w_display}{reset_tag}")
+                    styled_words.append(f"{pop_tag}{w}{reset_tag}")
                 else:
                     if style_mode == "sliding" and j < w_idx:
                         # Preceding word in sliding burst is dimmed
@@ -214,6 +232,7 @@ def generate_from_sentences(
 
         bursts = split_into_bursts(sentence, max_words=max_words)
         for burst in bursts:
+            burst = [clean_caption_word(w) for w in burst]
             burst_words_count = len(burst)
             burst_duration = max(0.5, burst_words_count * seconds_per_word)
             burst_start = current_time
@@ -227,11 +246,9 @@ def generate_from_sentences(
                 styled_parts = []
                 for j, w in enumerate(burst):
                     if j == idx:
-                        emoji = get_word_emoji(w)
-                        w_display = f"{w} {emoji}" if emoji else w
                         pop_tag = "{\\c" + highlight_color + "\\t(0,60,\\fscx118\\fscy118)\\t(60,130,\\fscx100\\fscy100)}"
                         reset_tag = "{\\c&HFFFFFF&\\fscx100\\fscy100}"
-                        styled_parts.append(f"{pop_tag}{w_display}{reset_tag}")
+                        styled_parts.append(f"{pop_tag}{w}{reset_tag}")
                     else:
                         styled_parts.append(w)
 
@@ -252,15 +269,16 @@ def generate_ass_subtitles(
     lang: str = "en",
     style: str = "hormozi",
     boundaries: Optional[List[Dict[str, Any]]] = None,
-    font_size: int = 78,
+    font_size: int = 96,
     margin_v: int = 520,
-    highlight_color: Optional[str] = None
+    highlight_color: Optional[str] = None,
+    hook_text: Optional[str] = None
 ) -> str:
     """
     Generate viral ASS subtitle file synchronized with speech duration.
-    Uses Mukta Malar for guaranteed complex HarfBuzz ligature shaping (Tamil & English).
+    Uses Mukta Malar ExtraBold for guaranteed complex HarfBuzz ligature shaping (Tamil & English).
     """
-    font_name = "Mukta Malar"
+    font_name = "Mukta Malar ExtraBold"
     hl_color = get_palette_color(highlight_color or style)
 
     # ASS Header configuration:
@@ -276,7 +294,8 @@ PlayResY: 1920
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{font_name},{font_size},&H00FFFFFF,&H000000FF,&H00000000,&H90000000,1,0,0,0,100,100,0,0,1,9,4,2,80,80,{margin_v},1
+Style: Default,{font_name},{font_size},&H00FFFFFF,&H000000FF,&H00000000,&H90000000,0,0,0,0,100,100,0,0,1,9,4,2,80,80,{margin_v},1
+Style: Hook,{font_name},112,&H00FFFFFF,&H000000FF,&H00000000,&H90000000,0,0,0,0,100,100,0,0,1,10,5,8,70,70,300,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -287,7 +306,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     else:
         events = generate_from_sentences(sentences, total_duration, hl_color, max_words=2)
 
-    os.makedirs(os.path.dirname(output_ass_path), exist_ok=True)
+    if hook_text:
+        hook_event = build_hook_event(hook_text, hl_color, duration=min(2.6, total_duration))
+        if hook_event:
+            events.insert(0, hook_event)
+
+    os.makedirs(os.path.dirname(output_ass_path) or ".", exist_ok=True)
     with open(output_ass_path, "w", encoding="utf-8") as f:
         f.write(ass_header + "\n".join(events) + "\n")
 

@@ -13,7 +13,7 @@ VIRAL_TEMPLATES = {
                 "Number 2: There is a rogue black hole hurtling through our galaxy at over one million miles per hour.",
                 "And Number 3: In space, no one can hear you scream because there are no molecules to carry sound waves."
             ],
-            "cta": "Which fact shocked you the most? Subscribe for more mind-blowing universe secrets!",
+            "cta": "So which of these will you think about the next time you look up?",
             "tags": ["#shorts", "#space", "#astronomy", "#universe", "#facts", "#science"]
         },
         "ta": {
@@ -24,7 +24,7 @@ VIRAL_TEMPLATES = {
                 "இரண்டாவது: மணிக்கு பத்து லட்சம் மைல் வேகத்தில் நம் விண்மீன் திரளில் ஒரு கருந்துளை சீறிப்பாய்கிறது.",
                 "மூன்றாவது: விண்வெளியில் காற்று இல்லாததால், எவ்வளவு சத்தமாக கத்தினாலும் யாருக்கும் கேட்காது."
             ],
-            "cta": "இதில் உங்களுக்கு எந்த உண்மை ஆச்சரியமாக இருந்தது? இதுபோன்ற சுவாரஸ்யமான தகவல்களுக்கு உடனே சப்ஸ்கிரைப் செய்யுங்கள்!",
+            "cta": "இதில் உங்களுக்கு எந்த உண்மை ஆச்சரியமாக இருந்தது?",
             "tags": ["#shorts", "#tamil", "#space", "#science", "#tamilfacts", "#universe"]
         }
     },
@@ -34,10 +34,10 @@ VIRAL_TEMPLATES = {
             "hook": "Here are three dark psychological tricks that people unconsciously use on you every day.",
             "points": [
                 "First: If someone suddenly stops arguing with you, they didn't agree with you; they realized you're not worth their peace.",
-                "Second: The human brain can detect when someone is staring at you, even while you are completely asleep.",
+                "Second: Yawning spreads because your brain automatically copies the people around you.",
                 "Third: People who give the best advice are usually the ones who have dealt with the most pain."
             ],
-            "cta": "Drop a 100 in the comments if you experienced this. Follow for daily psychology wisdom!",
+            "cta": "Now you know why the people around you do this every day.",
             "tags": ["#shorts", "#psychology", "#mindset", "#facts", "#behavior", "#humanmind"]
         },
         "ta": {
@@ -45,23 +45,23 @@ VIRAL_TEMPLATES = {
             "hook": "மனித மூளையைப் பற்றிய இந்த மூன்று ரகசியங்கள் உங்கள் சிந்தனையையே முற்றிலுமாக மாற்றிவிடும்!",
             "points": [
                 "முதலில்: ஒருவர் உங்களுடன் வாதாடுவதை திடீரென நிறுத்தினால், அவர் உங்கள் அமைதியை மதிக்க தொடங்கிவிட்டார் என்று அர்த்தம்.",
-                "இரண்டாவது: நீங்கள் தூங்கும்போது கூட யாராவது உங்களை உற்றுப் பார்த்தால், உங்கள் உள்ளுணர்வு அதை எளிதாக உணர்ந்துவிடும்.",
+                "இரண்டாவது: ஒருவர் கொட்டாவி விட்டால் உங்களுக்கும் கொட்டாவி வருவது, உங்கள் மூளை மற்றவர்களைத் தானாகப் பின்பற்றுவதால் தான்.",
                 "மூன்றாவது: மற்றவர்களுக்கு சிறந்த அறிவுரை சொல்பவர்கள், தங்கள் வாழ்க்கையில் அதிக வலிகளை கடந்தவர்களாக இருப்பார்கள்."
             ],
-            "cta": "இதை நீங்கள் எப்போதாவது உணர்ந்திருக்கிறீர்களா? மேலும் தகவல்களுக்கு உடனே சப்ஸ்கிரைப் செய்து ஆதரவு தாருங்கள்!",
+            "cta": "இதை நீங்கள் எப்போதாவது உணர்ந்திருக்கிறீர்களா?",
             "tags": ["#shorts", "#tamil", "#psychology", "#tamilmotivation", "#mindset", "#lifehacks"]
         }
     },
     "history": {
         "en": {
-            "title": "Ancient Mysteries Science Still Can't Explain",
-            "hook": "These three ancient architectural marvels defy every single law of modern engineering.",
+            "title": "Ancient Engineering That Still Stuns Experts",
+            "hook": "These three ancient marvels still stun modern engineers.",
             "points": [
                 "Point 1: The Great Pyramid of Giza was built with 2.3 million stones aligned perfectly to true north.",
                 "Point 2: The Kailasa Temple in India was carved from top to bottom out of a single monolithic rock, removing 200,000 tons of basalt.",
                 "Point 3: The Antikythera mechanism discovered in Greece was an ancient mechanical computer built over two thousand years ago."
             ],
-            "cta": "Could ancient civilisations have had lost technology? Tell us in the comments and subscribe!",
+            "cta": "So what else did the ancient world know that we have forgotten?",
             "tags": ["#shorts", "#history", "#ancient", "#mysteries", "#engineering", "#archaeology"]
         },
         "ta": {
@@ -72,7 +72,7 @@ VIRAL_TEMPLATES = {
                 "இரண்டாவது: எல்லோராவின் கைலாசநாதர் கோயில், ஒரு மாபெரும் மலையை மேலிருந்து கீழாக செதுக்கி உருவாக்கப்பட்ட உலகின் ஒரே அற்புதம்.",
                 "மூன்றாவது: இரண்டாயிரம் ஆண்டுகளுக்கு முன்பே கட்டப்பட்ட கல்லணை, இன்றளவும் காவிரி ஆற்று வெள்ளத்தை கம்பீரமாக தடுத்து நிறுத்துகிறது."
             ],
-            "cta": "தமிழர்களின் இந்த அபாரமான கட்டடக் கலை பற்றி நீங்கள் என்ன நினைக்கிறீர்கள்? மறக்காமல் சப்ஸ்கிரைப் செய்யுங்கள்!",
+            "cta": "தமிழர்களின் இந்த அபாரமான கட்டடக் கலை பற்றி நீங்கள் என்ன நினைக்கிறீர்கள்?",
             "tags": ["#shorts", "#tamil", "#tamilhistory", "#thanjavur", "#chola", "#heritage"]
         }
     },
@@ -85,7 +85,7 @@ VIRAL_TEMPLATES = {
                 "Fact 2: Neural interfaces already allow paralyzed patients to type messages at 60 words per minute using just their thoughts.",
                 "Fact 3: Humanoid robots are entering gigafactories to perform heavy industrial labor 24 hours a day with zero rest."
             ],
-            "cta": "Are you excited or nervous about this future? Subscribe for cutting-edge tech updates!",
+            "cta": "So are you excited or nervous about what comes next?",
             "tags": ["#shorts", "#tech", "#ai", "#future", "#quantum", "#innovation"]
         },
         "ta": {
@@ -96,7 +96,7 @@ VIRAL_TEMPLATES = {
                 "இரண்டாவது: மூளையோடு இணைக்கப்படும் சிறிய சிப் மூலம், சிந்தனையின் மூலமாகவே கணினியை இயக்கும் தொழில்நுட்பம் வந்துவிட்டது.",
                 "மூன்றாவது: மனிதர்களைப் போலவே சுயமாக சிந்தித்து வேலை செய்யும் ஹியூமனாய்டு ரோபோக்கள் தொழிற்சாலைகளில் இறங்கிவிட்டன."
             ],
-            "cta": "இந்த எதிர்கால தொழில்நுட்பம் உங்களுக்கு பிடிக்குமா? உடனே சப்ஸ்கிரைப் செய்து இணைந்து கொள்ளுங்கள்!",
+            "cta": "இந்த எதிர்கால தொழில்நுட்பம் உங்களுக்கு பிடிக்குமா?",
             "tags": ["#shorts", "#tamil", "#technology", "#ai", "#tamiltech", "#futuretech"]
         }
     },
@@ -109,7 +109,7 @@ VIRAL_TEMPLATES = {
                 "Rule 2: They ruthlessly protect their focus. They say no to 99 percent of distractions to protect their priority.",
                 "Rule 3: They never stop learning. A single insight read in a book can make you millions in the next five years."
             ],
-            "cta": "Which habit will you start implementing today? Like and subscribe for daily wealth motivation!",
+            "cta": "So which of these habits will you start today?",
             "tags": ["#shorts", "#wealth", "#motivation", "#success", "#money", "#habits"]
         },
         "ta": {
@@ -120,7 +120,7 @@ VIRAL_TEMPLATES = {
                 "இரண்டாவது விதி: தேவையற்ற விஷயங்களுக்கு தைரியமாக நோ சொல்லிவிட்டு, தங்கள் இலக்கில் மட்டுமே முழுக் கவனம் செலுத்துவார்கள்.",
                 "மூன்றாவது விதி: ஒருபோதும் கற்பதை நிறுத்த மாட்டார்கள். புதிய புத்தகங்களும் அறிவும் தான் அவர்களின் மிகப்பெரிய பலம்."
             ],
-            "cta": "இதில் நீங்கள் இன்று முதல் தொடங்கப்போகும் பழக்கம் எது? பயனுள்ள தகவல்களுக்கு உடனே சப்ஸ்கிரைப் செய்யுங்கள்!",
+            "cta": "இதில் நீங்கள் இன்று முதல் தொடங்கப்போகும் பழக்கம் எது?",
             "tags": ["#shorts", "#tamil", "#tamilmotivation", "#success", "#wealth", "#goals"]
         }
     },
