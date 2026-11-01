@@ -21,7 +21,7 @@
    - **Neon Glow Aura (`neon_glow`)**: Multi-layered blurred neon halo surrounding the active word.
    - **Dual-Line Sliding Window (`sliding`)**: Displays 2-line context where previous words gently dim down, giving viewers natural reading rhythm.
    - **Custom Highlight Colors (`--highlight-color`)**: Hex picker or ASS format (`#00FFFF`, `#05FFA1`, `#FFD700`, `#FF00FF`, `#FF4500`).
-   - Semantic auto-emoji insertion (🚀, 🧠, ⚡, 💡, 🔥, 🏆, etc.).
+   - Large on-screen hook text in the opening seconds.
 
 3. **🎙️ Auto-Caption Existing Videos (`shorts caption`)**:
    - Transcribe raw or pre-recorded MP4/MOV videos with Whisper / fallback alignment.
@@ -61,7 +61,7 @@
 8. **🎵 Multi-Layer Semantic Soundscapes & Foley SFX (`--ambient`, `--sfx`)**:
    - **Acoustic Atmospheres**: `rain` (droplets & storm), `keyboard` (mechanical typing), `server` (datacenter hum), `wind` (atmospheric room tone).
    - **Hollywood Foley SFX**: `impact` (sub-bass drop), `whoosh` (camera sweep), `telemetry` (futuristic HUD beeps), `riser` (tension build-up).
-   - **Studio Audio Mastering**: EBU R128 loudness normalization (-16 LUFS), 80Hz rumble filter, 3.2kHz vocal presence boost, and dynamic audio sidechain ducking.
+   - **Studio Audio Mastering**: EBU R128 loudness normalization (-14 LUFS), 80Hz rumble filter, 3.2kHz vocal presence boost, and dynamic audio sidechain ducking.
 
 9. **🖼️ High-CTR YouTube Thumbnail Studio**:
    - Automatically generates attention-grabbing 1080x1920 (Vertical Shorts) and 1280x720 (Cinema) thumbnails with category badge pills, bold typography, bullet points, and glowing gradient borders.

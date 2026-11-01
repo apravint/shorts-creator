@@ -65,6 +65,25 @@ def detect_optimal_video_encoder(preferred: str = "auto") -> tuple:
     return info
 
 
+def run_ffmpeg(cmd: List[str]) -> None:
+    """Run FFmpeg, raising with its own error text instead of a bare exit code."""
+    res = subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+    if res.returncode != 0:
+        raise RuntimeError(f"FFmpeg failed: {res.stderr.strip()[-800:]}")
+
+
+def build_progress_bar_graph(chain: str, duration: float, color: str, fps: int, width: int, thickness: int = 12) -> str:
+    """
+    Wrap a filter chain with a progress bar that grows across the video.
+    drawbox evaluates its size only once, so the bar slides in as an overlay driven by per-frame time.
+    """
+    return (
+        f"[in]{chain}[base];"
+        f"color=c={color}@0.95:s={width}x{thickness}:r={fps},format=rgba[bar];"
+        f"[base][bar]overlay=x='-W+W*t/{duration}':y=H-{thickness}:shortest=1[out]"
+    )
+
+
 def build_procedural_background_filter(bg_type: str, duration: float, width: int = 1080, height: int = 1920) -> str:
     """Fallback FFmpeg filtergraph for procedural motion background."""
     if bg_type in ("cyber", "tech"):
@@ -105,12 +124,14 @@ def assemble_shorts_video(
     ambient_vibe: Optional[str] = None,
     sfx_cue: Optional[str] = None,
     visual_mode: str = "auto",
-    encoder: str = "auto"
+    encoder: str = "auto",
+    visual_queries: Optional[List[str]] = None
 ) -> str:
     """
     Assemble the complete short video with studio-grade audio mastering,
     cinematic optical grading, talking avatar PiP, and HarfBuzz typography.
     """
+    output_path = os.path.abspath(output_path)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     temp_dir = os.path.join(os.path.dirname(output_path), "temp_assembly")
     os.makedirs(temp_dir, exist_ok=True)
@@ -137,7 +158,8 @@ def assemble_shorts_video(
                 boundaries=boundaries,
                 width=width,
                 height=height,
-                visual_mode=visual_mode
+                visual_mode=visual_mode,
+                visual_queries=visual_queries
             )
             if isinstance(montage_res, tuple):
                 m_path, cuts = montage_res
@@ -177,7 +199,7 @@ def assemble_shorts_video(
     fonts_dir_escaped = FONTS_DIR.replace("\\", "/").replace(":", "\\:")
     ass_filter = f"ass=filename={ass_escaped}:fontsdir={fonts_dir_escaped}:shaping=1"
 
-    # 4. Filters & Retention laser progress bar
+    # 4. Filters
     extra_filters = []
 
     # Apply Shotcraft recipe filter if selected (with video-stream safety)
@@ -191,23 +213,15 @@ def assemble_shorts_video(
         for_video=is_video_input
     ) if recipe else None
 
-    # Retention progress bar along bottom
-    if progress_bar and duration > 0:
-        bar_y = height - 16
-        bar_filter = (
-            f"drawbox=x=0:y={bar_y}:w=iw:h=16:color=black@0.45:t=fill,"
-            f"drawbox=x=0:y={bar_y}:w='min(iw,iw*(t/{duration}))':h=16:color={progress_color}@0.95:t=fill"
-        )
-        extra_filters.append(bar_filter)
-
     # Cinema 2.39:1 scope overlay if requested
     if is_cinema:
-        letterbox_h = int((height - (width * 16 / 9)) / 2) if height > width else int((height - (width / 2.39)) / 2)
+        letterbox_h = int((height - (width / 2.39)) / 2)
         if letterbox_h > 0:
             extra_filters.append(f"drawbox=x=0:y=0:w=iw:h={letterbox_h}:color=black:t=fill")
             extra_filters.append(f"drawbox=x=0:y=ih-{letterbox_h}:w=iw:h={letterbox_h}:color=black:t=fill")
 
-    extra_str = ("," + ",".join(extra_filters)) if extra_filters else ""
+    # Captions go last so they sit above the letterbox and any recipe grading
+    overlay_chain = ",".join([*extra_filters, ass_filter])
 
     cmd = ["ffmpeg", "-y"]
 
@@ -221,12 +235,12 @@ def assemble_shorts_video(
         base_vfilter = (
             f"scale={width}:{height}:force_original_aspect_ratio=increase,"
             f"crop={width}:{height},setsar=1,"
-            f"eq=brightness=-0.02:contrast=1.03"
+            f"eq=contrast=1.06:saturation=1.12,vignette=PI/5"
         )
         if recipe_filter:
-            video_filter = f"{base_vfilter},{recipe_filter},{ass_filter}{extra_str}"
+            video_filter = f"{base_vfilter},{recipe_filter},{overlay_chain}"
         else:
-            video_filter = f"{base_vfilter},{ass_filter}{extra_str}"
+            video_filter = f"{base_vfilter},{overlay_chain}"
     else:
         bg_filter = build_procedural_background_filter(bg_type, duration, width, height)
         cmd.extend([
@@ -234,30 +248,43 @@ def assemble_shorts_video(
             "-i", bg_filter
         ])
         if recipe_filter:
-            video_filter = f"{recipe_filter},{ass_filter}{extra_str}"
+            video_filter = f"{recipe_filter},{overlay_chain}"
         else:
-            video_filter = f"{ass_filter}{extra_str}"
+            video_filter = overlay_chain
+
+    # Retention progress bar along bottom
+    if progress_bar and duration > 0:
+        video_filter = build_progress_bar_graph(video_filter, duration, progress_color, fps, width)
 
     # Master audio input
     cmd.extend(["-i", master_audio_path])
 
     # Video & Audio mapping
-    temp_rendered = os.path.join(temp_dir, "base_rendered.mp4") if avatar_img else output_path
+    has_avatar = bool(avatar_img and os.path.isfile(avatar_img))
+    if avatar_img and not has_avatar:
+        print(f"[Warning] Avatar image not found, rendering without presenter: {avatar_img}")
+    temp_rendered = os.path.join(temp_dir, "base_rendered.mp4") if has_avatar else output_path
 
     enc_name, enc_flags = detect_optimal_video_encoder(encoder)
-
-    cmd.extend([
+    output_args = [
         "-vf", video_filter,
-        *enc_flags,
         "-c:a", "copy",
+        "-movflags", "+faststart",
         "-t", str(duration),
         temp_rendered
-    ])
+    ]
 
-    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+    try:
+        run_ffmpeg([*cmd, *enc_flags, *output_args])
+    except RuntimeError as e:
+        if enc_name == "libx264":
+            raise
+        print(f"[Warning] {enc_name} failed, retrying on CPU: {e}")
+        _, cpu_flags = detect_optimal_video_encoder("cpu")
+        run_ffmpeg([*cmd, *cpu_flags, *output_args])
 
     # 5. Composite talking avatar PiP if requested
-    if avatar_img and os.path.isfile(avatar_img):
+    if has_avatar:
         avatar_vid = os.path.join(temp_dir, "avatar_talking.mp4")
         AvatarEngine.create_talking_avatar_video(
             avatar_img_path=avatar_img,

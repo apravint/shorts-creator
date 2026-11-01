@@ -7,6 +7,7 @@ generative video models, Shotcraft recipes, digital talking avatar PiP, and Stud
 import os
 import sys
 import re
+import json
 import argparse
 from datetime import datetime
 from pathlib import Path
@@ -21,14 +22,14 @@ from shorts_creator.tts_engine import generate_voiceover, VOICE_MAP
 from shorts_creator.subtitle_gen import generate_ass_subtitles
 from shorts_creator.bgm_manager import prepare_bgm_track
 from shorts_creator.video_engine import assemble_shorts_video
-from shorts_creator.thumbnail import generate_thumbnail
+from shorts_creator.thumbnail import generate_thumbnail, extract_cover_frame
 from shorts_creator.brag import BragHarvester
 
 console = Console()
 
 
 def print_banner():
-    banner = """[bold cyan]⚡ SHORTS CREATOR AI 2.0 ⚡[/bold cyan]
+    banner = """[bold cyan]⚡ SHORTS CREATOR AI 2.1 ⚡[/bold cyan]
 [dim]Autonomous Video Engine • Multi-Model Generative AI • தமிழ் (Tamil) & English[/dim]"""
     console.print(Panel(banner, border_style="cyan", expand=False))
 
@@ -101,6 +102,22 @@ def list_voices():
     console.print(table)
 
 
+def write_upload_metadata(video_path: str, script_data: dict) -> str:
+    """Write the title, description and tags for the upload form beside the video."""
+    tags = list(dict.fromkeys(["#shorts", *script_data.get("tags", [])]))
+    metadata = {
+        # YouTube rejects titles over 100 characters
+        "title": script_data["title"][:100],
+        "description": f"{script_data['sentences'][0]}\n\n{' '.join(tags)}",
+        "tags": [t.lstrip("#") for t in tags],
+        "language": script_data.get("language")
+    }
+    path = video_path.rsplit(".", 1)[0] + "_metadata.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, ensure_ascii=False, indent=2)
+    return path
+
+
 def run_pipeline(
     topic: str = None,
     custom_script: str = None,
@@ -160,7 +177,7 @@ def run_pipeline(
         progress.update(task_script, completed=1)
 
         # Step 2: High-Quality Voiceover Synthesis
-        eff_rate = rate or ("+8%" if detected_lang == "ta" else "+0%")
+        eff_rate = rate or ("+8%" if detected_lang == "ta" else "+10%")
         task_tts = progress.add_task(f"[green]🎙️ Synthesizing {detected_lang.upper()} voiceover ({eff_rate})...", total=1)
         tts_data = generate_voiceover(
             text=script_data["full_text"],
@@ -182,7 +199,8 @@ def run_pipeline(
             lang=detected_lang,
             style=style,
             boundaries=tts_data.get("boundaries", []),
-            highlight_color=highlight_color
+            highlight_color=highlight_color,
+            hook_text=script_data.get("screen_hook")
         )
         progress.update(task_sub, completed=1)
 
@@ -213,7 +231,8 @@ def run_pipeline(
             ambient_vibe=ambient,
             sfx_cue=sfx,
             visual_mode=generator,
-            encoder=encoder
+            encoder=encoder,
+            visual_queries=script_data.get("visuals")
         )
         progress.update(task_video, completed=1)
 
@@ -222,15 +241,24 @@ def run_pipeline(
     if thumb:
         thumb_path = output_path.rsplit(".", 1)[0] + "_thumbnail.png"
         try:
+            # Prefer the caption-free montage so the cover does not carry a burned-in subtitle
+            montage = os.path.join(os.path.dirname(os.path.abspath(output_path)), "temp_assembly", "stitched_broll_montage.mp4")
+            cover_source = montage if os.path.isfile(montage) else final_video
+            cover_frame = extract_cover_frame(cover_source, os.path.join(workspace_dir, "cover.jpg"), duration * 0.15)
             generate_thumbnail(
                 title=script_data["title"],
                 output_path=thumb_path,
                 bullets=script_data.get("tags", [])[:3] or ["Key Takeaway", "Pro Tip"],
                 is_shorts=(not cinema),
-                theme=bg_type
+                theme=bg_type,
+                background_image=cover_frame
             )
-        except Exception:
+        except Exception as e:
+            console.print(f"[yellow]Thumbnail skipped: {e}[/yellow]")
             thumb_path = None
+
+    # Step 7: Upload-ready metadata beside the video
+    metadata_path = write_upload_metadata(output_path, script_data)
 
     # Success Summary Card
     console.print()
@@ -238,13 +266,13 @@ def run_pipeline(
 
 [bold]Video File:[/bold] [underline cyan]{final_video}[/underline cyan]
 [bold]Thumbnail:[/bold] [underline yellow]{thumb_path or 'N/A'}[/underline yellow]
+[bold]Upload Metadata:[/bold] [underline yellow]{metadata_path}[/underline yellow]
 [bold]Title:[/bold] {script_data['title']}
 [bold]Language:[/bold] {'தமிழ் (Tamil)' if detected_lang == 'ta' else 'English'}
 [bold]Duration:[/bold] {duration:.1f} seconds
 [bold]Voice Engine:[/bold] {tts_data['voice']}
-[bold]Audio Mastering:[/bold] [bold magenta]EBU R128 (-16 LUFS) with Sidechain Ducking[/bold magenta]
+[bold]Audio Mastering:[/bold] [bold magenta]EBU R128 (-14 LUFS) with Sidechain Ducking[/bold magenta]
 [bold]Shotcraft Recipe:[/bold] {recipe or 'Standard Flow'}
-[bold]📱 Android Downloads / Gallery:[/bold] [bold yellow]{final_video}[/bold yellow]
 [bold]Hashtags:[/bold] [dim]{' '.join(script_data['tags'])}[/dim]
 """
     console.print(Panel(summary_text, border_style="green", expand=False))
@@ -432,7 +460,7 @@ def main():
     # Command: web
     web_p = subparsers.add_parser("web", help="Launch ShortsCreator Web Studio on browser")
     web_p.add_argument("-p", "--port", type=int, default=8080, help="Web server port (default: 8080)")
-    web_p.add_argument("--host", default="0.0.0.0", help="Web server host (default: 0.0.0.0)")
+    web_p.add_argument("--host", default="127.0.0.1", help="Web server host (default: 127.0.0.1; use 0.0.0.0 to expose it to your network)")
 
     # Command: wizard
     subparsers.add_parser("wizard", help="Interactive step-by-step creation wizard")

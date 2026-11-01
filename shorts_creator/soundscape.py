@@ -118,13 +118,14 @@ class SoundscapeEngine:
         work_dir.mkdir(parents=True, exist_ok=True)
 
         inputs = ["-i", str(narration_path)]
-        filter_inputs = ["[0:a]"]
+        input_count = 1
 
         has_music = bg_music_path and os.path.isfile(str(bg_music_path))
         music_idx = None
         if has_music:
             inputs.extend(["-stream_loop", "-1", "-i", str(bg_music_path)])
-            music_idx = len(inputs) // 2 - 1
+            music_idx = input_count
+            input_count += 1
 
         # Synthesize ambient layer if requested
         ambient_idx = None
@@ -132,7 +133,8 @@ class SoundscapeEngine:
             amb_path = work_dir / f"ambient_{ambient_vibe}.wav"
             SoundscapeEngine.generate_procedural_ambient(ambient_vibe, duration + 2.0, amb_path)
             inputs.extend(["-stream_loop", "-1", "-i", str(amb_path)])
-            ambient_idx = len(inputs) // 2 - 1
+            ambient_idx = input_count
+            input_count += 1
 
         # Synthesize montage sfx (whooshes on cuts + hook impact) or specific sfx cue
         sfx_idx = None
@@ -142,7 +144,8 @@ class SoundscapeEngine:
                 sfx_file, cut_times=cut_timestamps, total_duration=duration
             )
             inputs.extend(["-i", str(sfx_file)])
-            sfx_idx = len(inputs) // 2 - 1
+            sfx_idx = input_count
+            input_count += 1
         elif sfx_cue and sfx_cue.lower() in ("impact", "whoosh", "telemetry", "riser"):
             sfx_file = work_dir / f"cue_{sfx_cue}.wav"
             if sfx_cue == "impact":
@@ -154,7 +157,8 @@ class SoundscapeEngine:
             elif sfx_cue == "riser":
                 SoundEffectsSynthesizer.generate_riser(sfx_file, duration=min(3.5, duration))
             inputs.extend(["-i", str(sfx_file)])
-            sfx_idx = len(inputs) // 2 - 1
+            sfx_idx = input_count
+            input_count += 1
 
         # Construct FFmpeg audio filtergraph
         fc_parts = []
@@ -187,8 +191,8 @@ class SoundscapeEngine:
             mix_sources.append("[sfx]")
 
         fc_parts.append(
-            f"{''.join(mix_sources)}amix=inputs={len(mix_sources)}:duration=first:dropout_transition=2,"
-            f"loudnorm=I=-16:TP=-1.5:LRA=10[outa]"
+            f"{''.join(mix_sources)}amix=inputs={len(mix_sources)}:duration=first:dropout_transition=2:normalize=0,"
+            f"loudnorm=I=-14:TP=-1.5:LRA=9[outa]"
         )
 
         filter_complex = ";".join(fc_parts)
@@ -205,10 +209,14 @@ class SoundscapeEngine:
         ]
 
         try:
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
             return output_path
-        except Exception:
-            # Fallback direct voice copy if complex mixing encounters edge case
-            import shutil
-            shutil.copyfile(str(narration_path), str(output_path))
+        except subprocess.CalledProcessError as e:
+            # Narration-only master keeps the render alive, but the lost music and SFX must be visible
+            print(f"[Warning] Audio mix failed, using narration only: {(e.stderr or '').strip()[-400:]}")
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", str(narration_path), "-af", "loudnorm=I=-14:TP=-1.5:LRA=9",
+                 "-c:a", "aac", "-b:a", "320k", "-ar", "48000", str(output_path)],
+                check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
             return output_path

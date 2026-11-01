@@ -9,10 +9,19 @@ import os
 import re
 import json
 import random
+import time
+import hashlib
 import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import List, Optional, Dict, Any
+
+from .text_match import has_term
+
+# Time allowed for fetching new footage per video, and for any one clip
+DOWNLOAD_BUDGET_SECONDS = 75.0
+SINGLE_DOWNLOAD_SECONDS = 25.0
+_download_deadline: Optional[float] = None
 
 CACHE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets", "backgrounds"))
 USER_AGENT = "ShortsCreatorAI/2.0 (https://github.com/apravint/shorts-creator; apravint@gmail.com)"
@@ -209,11 +218,10 @@ def resolve_search_query(text: str) -> str:
 
 def extract_search_category(text: str) -> str:
     """Analyze English and Tamil text to select the best visual category."""
-    text_lower = (text or "").lower()
     for cat, keywords in KEYWORD_MAPPINGS.items():
-        if any(kw in text_lower for kw in keywords):
+        if has_term(text, keywords):
             return cat
-    return "space"
+    return "nature"
 
 
 def search_wikimedia_videos(query: str) -> List[str]:
@@ -264,20 +272,35 @@ def scrape_mixkit_video_urls(category: str) -> List[str]:
         return []
 
 
+def reset_download_budget(seconds: float = DOWNLOAD_BUDGET_SECONDS) -> None:
+    """Start a fresh download allowance for one video; slow networks then cost a fixed amount of time."""
+    global _download_deadline
+    _download_deadline = time.monotonic() + seconds
+
+
 def download_video_file(url: str, dest_path: str) -> bool:
-    """Download video with user-agent and verify file integrity."""
+    """Download video with user-agent within the current budget, keeping only complete files."""
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    if _download_deadline is None:
+        reset_download_budget()
     headers = {"User-Agent": USER_AGENT}
+    partial_path = f"{dest_path}.part"
+    # A socket timeout only bounds each read, so a slow transfer needs its own deadline
+    deadline = min(_download_deadline, time.monotonic() + SINGLE_DOWNLOAD_SECONDS)
     try:
         req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=25) as resp:
-            content = resp.read()
-            if len(content) > 100000:
-                with open(dest_path, "wb") as f:
-                    f.write(content)
-                return True
+        with urllib.request.urlopen(req, timeout=10) as resp, open(partial_path, "wb") as f:
+            while chunk := resp.read(256 * 1024):
+                if time.monotonic() > deadline:
+                    raise TimeoutError(f"Download exceeded its time allowance: {url}")
+                f.write(chunk)
+        if os.path.getsize(partial_path) > 100000:
+            os.replace(partial_path, dest_path)
+            return True
     except Exception:
         pass
+    if os.path.exists(partial_path):
+        os.remove(partial_path)
     return False
 
 
@@ -295,55 +318,66 @@ def get_open_source_video(
     os.makedirs(CACHE_DIR, exist_ok=True)
     resolved_query = resolve_search_query(query_or_topic or "")
     cat = preferred_category or extract_search_category(query_or_topic or "")
-    relaxed_categories = CATEGORY_RELAXATION_MAP.get(cat, [cat, "nature", "space", "city"])
+    relaxed_categories = CATEGORY_RELAXATION_MAP.get(cat, [cat, "nature", "city"])
 
-    # 1. Check local cache across relaxed category chain for unused footage
-    for candidate_cat in relaxed_categories:
-        cached_candidates = [
-            os.path.join(CACHE_DIR, f)
-            for f in os.listdir(CACHE_DIR)
-            if f.lower().startswith(candidate_cat) and f.lower().endswith((".mp4", ".mov", ".webm"))
+    # Older caches hold the same clip under several names, so a used clip is also recognised by size
+    used_sizes = {os.path.getsize(p) for p in (exclude_paths or ()) if os.path.isfile(p)}
+
+    def is_fresh(path: str) -> bool:
+        return path not in (exclude_paths or ()) and os.path.getsize(path) not in used_sizes
+
+    def cached_fresh(candidate_cat: str) -> List[str]:
+        return [
+            path for path in (os.path.join(CACHE_DIR, f) for f in os.listdir(CACHE_DIR))
+            if os.path.basename(path).lower().startswith(candidate_cat)
+            and path.lower().endswith((".mp4", ".mov", ".webm"))
+            and os.path.getsize(path) > 500000
+            and is_fresh(path)
         ]
-        if cached_candidates:
-            valid = [f for f in cached_candidates if os.path.getsize(f) > 500000]
-            fresh = [f for f in valid if not exclude_paths or f not in exclude_paths]
-            if fresh:
-                return random.choice(fresh)
 
-    # 2. Try Mixkit Scraping for the primary category
-    urls = scrape_mixkit_video_urls(cat)
+    # 1. Unused footage already cached for the topic's own category
+    primary_cached = cached_fresh(cat)
+    if primary_cached:
+        return random.choice(primary_cached)
 
-    # 3. Try Wikimedia Commons Video API
-    if not urls and resolved_query:
+    if _download_deadline is None:
+        reset_download_budget()
+    budget_left = time.monotonic() < _download_deadline
+
+    # 2. New on-topic footage: Mixkit, then the Wikimedia Commons Video API
+    urls = scrape_mixkit_video_urls(cat) if budget_left else []
+    if budget_left and not urls and resolved_query:
         urls = search_wikimedia_videos(resolved_query)
 
-    # 4. Fallback to Curated Open Videos across relaxation chain
-    if not urls:
-        for candidate_cat in relaxed_categories:
-            if candidate_cat in CURATED_OPEN_VIDEOS:
-                urls = CURATED_OPEN_VIDEOS[candidate_cat]
-                break
-
-    if not urls:
-        urls = CURATED_OPEN_VIDEOS["space"]
+    # 3. Curated fallback for the same category
+    if budget_left and not urls:
+        urls = list(CURATED_OPEN_VIDEOS.get(cat, []))
 
     random.shuffle(urls)
 
-    for vid_url in urls[:4]:
-        dest_filename = f"{cat}_{random.randint(100, 999)}.mp4"
-        dest_path = os.path.join(CACHE_DIR, dest_filename)
-        success = download_video_file(vid_url, dest_path)
-        if success and os.path.isfile(dest_path):
-            if not exclude_paths or dest_path not in exclude_paths:
+    attempts = 0
+    for vid_url in urls:
+        # Named by URL so the same clip is never stored twice and mistaken for new footage
+        dest_path = os.path.join(CACHE_DIR, f"{cat}_{hashlib.sha1(vid_url.encode()).hexdigest()[:12]}.mp4")
+        if os.path.isfile(dest_path):
+            if is_fresh(dest_path):
                 return dest_path
+            continue
+        if attempts >= 2 or time.monotonic() >= _download_deadline:
+            break
+        attempts += 1
+        if download_video_file(vid_url, dest_path) and is_fresh(dest_path):
+            return dest_path
 
-    # Fallback to any valid video in CACHE_DIR
-    all_local = [
-        os.path.join(CACHE_DIR, f)
-        for f in os.listdir(CACHE_DIR)
-        if f.lower().endswith((".mp4", ".webm")) and os.path.getsize(os.path.join(CACHE_DIR, f)) > 100000
+    # 4. Related categories, before repeating anything
+    for candidate_cat in relaxed_categories[1:]:
+        related_cached = cached_fresh(candidate_cat)
+        if related_cached:
+            return random.choice(related_cached)
+
+    # 5. Nothing new is available: the caller's random in-point makes a repeat look different
+    same_cat = [
+        os.path.join(CACHE_DIR, f) for f in os.listdir(CACHE_DIR)
+        if f.lower().startswith(cat) and f.lower().endswith((".mp4", ".mov", ".webm"))
     ]
-    fresh_any = [f for f in all_local if not exclude_paths or f not in exclude_paths]
-    if fresh_any:
-        return random.choice(fresh_any)
-    return all_local[0] if all_local else None
+    return random.choice(same_cat) if same_cat else None

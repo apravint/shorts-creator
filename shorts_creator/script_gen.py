@@ -8,8 +8,22 @@ import os
 import re
 import json
 import urllib.request
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 from shorts_creator.templates import VIRAL_TEMPLATES
+from shorts_creator.text_match import has_term
+
+# Shared by every language and provider; these are what a viewer feels in the first seconds
+RETENTION_RULES = (
+    "Hook rules: at most 10 spoken words, open a specific curiosity gap, and never begin with a greeting, "
+    "'Did you know' or the topic name. "
+    "Every line must add one new, concrete detail: a number, a name or a surprising turn. No filler and no 'in this video'. "
+    "Accuracy: use only claims that are true and widely documented. Never invent facts, statistics or quotes, "
+    "and do not promise anything the script does not deliver. "
+    "The cta must not ask viewers to subscribe, like or comment. "
+    "Also output: screen_hook (the on-screen version of the hook, at most 6 words, in the script's language) and "
+    "visuals (an array of 5 English stock-footage search phrases, one each for the hook, the 3 points and the cta, "
+    "each naming a concrete filmable subject, for example 'astronaut floating above earth'). "
+)
 
 
 def detect_language(text: str) -> str:
@@ -25,15 +39,26 @@ def clean_script_text(text: str) -> str:
     # Remove markdown asterisks, hashes
     text = re.sub(r'[*#_~`>]', '', text)
     # Remove emojis (keep Tamil and English alphanumeric characters and punctuation)
-    text = re.sub(r'[^\w\s\u0B80-\u0BFF.,!?;:\'\"-]', '', text)
+    text = re.sub(r'[^\w\s\u0B80-\u0BFF.,!?;:\'\"%$+-]', '', text)
     # Collapse multiple whitespaces and newlines
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
 
+def is_valid_script(data: Any) -> bool:
+    """A model response is usable only if every part the pipeline reads is present."""
+    return (
+        isinstance(data, dict)
+        and all(isinstance(data.get(k), str) and data[k].strip() for k in ("hook", "cta"))
+        and isinstance(data.get("points"), list)
+        and len(data["points"]) > 0
+        and all(isinstance(p, str) and p.strip() for p in data["points"])
+    )
+
+
 def generate_with_gemini(topic: str, lang: str, api_key: str) -> Optional[Dict[str, Any]]:
     """Generate viral short script using Google Gemini API with model fallbacks."""
-    models = [
+    models = [m for m in [os.environ.get("GEMINI_MODEL")] if m] + [
         "gemini-3.8-flash",
         "gemini-flash-latest",
         "gemini-3.7-flash",
@@ -69,12 +94,12 @@ def generate_with_gemini(topic: str, lang: str, api_key: str) -> Optional[Dict[s
         )
 
     for model in models:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         payload = {
             "contents": [
                 {
                     "parts": [
-                        {"text": f"{system_instruction}\nTopic: {topic}\nRespond ONLY with valid JSON."}
+                        {"text": f"{system_instruction}\n{RETENTION_RULES}\nTopic: {topic}\nRespond ONLY with valid JSON."}
                     ]
                 }
             ],
@@ -88,12 +113,14 @@ def generate_with_gemini(topic: str, lang: str, api_key: str) -> Optional[Dict[s
             req = urllib.request.Request(
                 url,
                 data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json", "x-goog-api-key": api_key}
             )
-            with urllib.request.urlopen(req, timeout=12) as response:
+            with urllib.request.urlopen(req, timeout=30) as response:
                 res_data = json.loads(response.read().decode("utf-8"))
                 candidate = res_data["candidates"][0]["content"]["parts"][0]["text"]
-                return json.loads(candidate)
+                data = json.loads(candidate)
+                if is_valid_script(data):
+                    return data
         except Exception:
             continue
     return None
@@ -121,7 +148,7 @@ def generate_with_groq(topic: str, lang: str, api_key: str) -> Optional[Dict[str
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": [
-            {"role": "system", "content": sys_msg},
+            {"role": "system", "content": f"{sys_msg} {RETENTION_RULES}"},
             {"role": "user", "content": f"Topic: {topic}"}
         ],
         "response_format": {"type": "json_object"},
@@ -140,7 +167,8 @@ def generate_with_groq(topic: str, lang: str, api_key: str) -> Optional[Dict[str
         with urllib.request.urlopen(req, timeout=10) as response:
             res_data = json.loads(response.read().decode("utf-8"))
             content = res_data["choices"][0]["message"]["content"]
-            return json.loads(content)
+            data = json.loads(content)
+            return data if is_valid_script(data) else None
     except Exception as e:
         print(f"[Warning] Groq API request failed: {e}")
         return None
@@ -148,22 +176,20 @@ def generate_with_groq(topic: str, lang: str, api_key: str) -> Optional[Dict[str
 
 def get_procedural_template(topic: str, lang: str) -> Dict[str, Any]:
     """Find the best matching template or return a general high-retention script."""
-    topic_lower = topic.lower()
-    
     category = "space"
-    if any(k in topic_lower for k in ["motivation", "motivational", "mindset", "success", "discipline", "வெற்றி", "முயற்சி", "விடாமுயற்சி", "உழைப்பு", "தோல்வி", "நம்பிக்கை", "சிகரம்"]):
+    if has_term(topic, ["motivation", "motivational", "mindset", "success", "discipline", "வெற்றி", "முயற்சி", "விடாமுயற்சி", "உழைப்பு", "தோல்வி", "நம்பிக்கை", "சிகரம்"]):
         category = "motivation"
-    elif any(k in topic_lower for k in ["tamil", "தமிழ்", "language", "மொழி", "செம்மொழி", "தமிழன்", "இலக்கியம்", "சிறப்பு"]):
+    elif has_term(topic, ["tamil", "தமிழ்", "language", "மொழி", "செம்மொழி", "தமிழன்", "இலக்கியம்", "சிறப்பு"]):
         category = "tamil"
-    elif any(k in topic_lower for k in ["space", "universe", "planet", "black hole", "galaxy", "விண்வெளி", "கிரகம்", "நிலவு", "சூரியன்"]):
+    elif has_term(topic, ["space", "universe", "planet", "black hole", "galaxy", "விண்வெளி", "கிரகம்", "நிலவு", "சூரியன்"]):
         category = "space"
-    elif any(k in topic_lower for k in ["psychology", "brain", "mind", "human", "behavior", "உளவியல்", "மனசு", "மூளை", "பயம்"]):
+    elif has_term(topic, ["psychology", "brain", "mind", "human", "behavior", "உளவியல்", "மனசு", "மூளை", "பயம்"]):
         category = "psychology"
-    elif any(k in topic_lower for k in ["history", "ancient", "temple", "pyramid", "war", "வரலாறு", "கோயில்", "சோழர்", "பழமை"]):
+    elif has_term(topic, ["history", "ancient", "temple", "pyramid", "war", "வரலாறு", "கோயில்", "சோழர்", "பழமை"]):
         category = "history"
-    elif any(k in topic_lower for k in ["tech", "ai", "robot", "computer", "future", "ஏஐ", "தொழில்நுட்பம்", "ரோபோ", "கணினி"]):
+    elif has_term(topic, ["tech", "ai", "robot", "computer", "future", "ஏஐ", "தொழில்நுட்பம்", "ரோபோ", "கணினி"]):
         category = "technology"
-    elif any(k in topic_lower for k in ["money", "rich", "wealth", "business", "habit", "பணம்", "கோடீஸ்வரன்", "முதலீடு"]):
+    elif has_term(topic, ["money", "rich", "wealth", "business", "habit", "பணம்", "கோடீஸ்வரன்", "முதலீடு"]):
         category = "wealth"
         
     template = VIRAL_TEMPLATES.get(category, VIRAL_TEMPLATES["space"])[lang]
@@ -241,7 +267,7 @@ def prepare_script(
         lang = detect_language(active_topic)
 
     groq_key = os.environ.get("GROQ_API_KEY")
-    gemini_key = os.environ.get("GEMINI_API_KEY")
+    gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     data = None
 
     if groq_key:
@@ -250,21 +276,23 @@ def prepare_script(
         data = generate_with_gemini(active_topic, lang, gemini_key)
 
     if not data:
+        print(
+            f"[Warning] No AI script available (set GEMINI_API_KEY or GROQ_API_KEY). "
+            f"Using a stock template that may not match the topic: {active_topic}"
+        )
         data = get_procedural_template(active_topic, lang)
 
     # Assemble sentences with rhythmic flow
-    all_sentences = [data["hook"]]
-    for pt in data["points"]:
-        all_sentences.append(pt)
-    all_sentences.append(data["cta"])
-
-    full_text = " ".join(all_sentences)
-    full_text_cleaned = clean_script_text(full_text)
+    all_sentences = [clean_script_text(s) for s in [data["hook"], *data["points"], data["cta"]]]
+    title = data.get("title", active_topic)
+    visuals = data.get("visuals")
 
     return {
-        "title": data.get("title", active_topic),
-        "full_text": full_text_cleaned,
+        "title": title,
+        "full_text": " ".join(all_sentences),
         "sentences": all_sentences,
         "tags": data.get("tags", ["#shorts", "#viral"]),
-        "language": lang
+        "language": lang,
+        "screen_hook": clean_script_text(data.get("screen_hook") or title),
+        "visuals": visuals if isinstance(visuals, list) and all(isinstance(v, str) for v in visuals) else None
     }

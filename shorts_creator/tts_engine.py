@@ -44,7 +44,7 @@ VOICE_MAP = {
         "male_casual": "en-US-BrianMultilingualNeural",
         "male_passionate": "en-US-GuyNeural",
         "indian_male": "en-IN-PrabhatNeural",
-        "default": "en-US-JennyNeural"
+        "default": "en-US-AndrewMultilingualNeural"
     },
     "hi": {
         "female": "hi-IN-SwaraNeural",
@@ -190,7 +190,11 @@ async def try_edge_tts_with_boundaries(
     """
     boundaries: List[Dict[str, Any]] = []
     try:
-        communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
+        # edge-tts 7.x emits only SentenceBoundary unless word boundaries are requested
+        try:
+            communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch, boundary="WordBoundary")
+        except TypeError:
+            communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
         with open(output_audio, "wb") as f:
             async for chunk in communicate.stream():
                 if chunk["type"] == "audio":
@@ -305,7 +309,7 @@ def generate_voiceover(
     return {
         "audio_path": audio_path,
         "duration": duration,
-        "voice": f"{voice} ({engine_used})",
+        "voice": f"{resolved_voice} ({engine_used})" if engine_used == "Edge-TTS" else f"Google TTS ({engine_used})",
         "lang": lang,
         "boundaries": boundaries
     }

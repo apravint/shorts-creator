@@ -7,6 +7,8 @@ perfectly matching spoken words and timing. Eliminates repetitive static loops a
 
 import os
 import re
+import io
+import json
 import math
 import random
 import urllib.parse
@@ -15,9 +17,17 @@ import subprocess
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-from .video_fetcher import get_open_source_video, TAMIL_TO_ENGLISH_MAP
+from PIL import Image
+
+from .text_match import has_term
+from .video_fetcher import get_open_source_video, reset_download_budget, NEGATIVE_NOISE_TERMS, TAMIL_TO_ENGLISH_MAP
 
 USER_AGENT = "ShortsCreatorAI/2.0 (https://github.com/apravint/shorts-creator; apravint@gmail.com)"
+
+# Longest a single shot may hold before the montage cuts away
+MAX_SHOT_SECONDS = 3.0
+# Licenses that allow reuse in a monetized video without on-screen attribution
+NO_ATTRIBUTION_LICENSES = ("public domain", "cc0", "pd")
 
 
 def calculate_sentence_timings(
@@ -36,53 +46,30 @@ def calculate_sentence_timings(
 
     # 1. Map boundaries from Edge-TTS if available
     if boundaries and len(boundaries) >= 4:
-        # Normalize boundaries
-        beats = []
-        b_idx = 0
+        # TTS tokenization differs slightly from str.split(), so locate each sentence by its share of the words
+        word_counts = [max(1, len(s.split())) for s in clean_sentences]
+        total_words = sum(word_counts)
         total_bounds = len(boundaries)
+        starts = []
+        words_before = 0
+        for wc in word_counts:
+            b_idx = min(total_bounds - 1, round(words_before / total_words * total_bounds))
+            starts.append(boundaries[b_idx]["start"])
+            words_before += wc
+        starts[0] = 0.0
 
+        beats = []
         for s_idx, sent in enumerate(clean_sentences):
-            sent_words = [w.lower().strip(".,!?:;\"'()[]") for w in sent.split() if w.strip()]
-            if not sent_words:
-                continue
-
-            start_t = boundaries[b_idx]["start"] if b_idx < total_bounds else (total_duration * (s_idx / len(clean_sentences)))
-
-            # Advance boundary pointer
-            matched = 0
-            while b_idx < total_bounds and matched < len(sent_words):
-                b_word = boundaries[b_idx].get("text", "").lower().strip(".,!?:;\"'()[]")
-                if b_word in sent_words or any(sw in b_word for sw in sent_words):
-                    matched += 1
-                b_idx += 1
-
-            end_t = boundaries[min(b_idx, total_bounds - 1)]["end"] if b_idx > 0 else (start_t + 3.0)
-            if s_idx == len(clean_sentences) - 1:
-                end_t = total_duration
-
-            dur = max(1.8, end_t - start_t)
+            start_t = starts[s_idx]
+            end_t = starts[s_idx + 1] if s_idx + 1 < len(starts) else total_duration
             beats.append({
                 "index": s_idx + 1,
                 "text": sent,
                 "start": round(start_t, 3),
-                "end": round(start_t + dur, 3),
-                "duration": round(dur, 3)
+                "end": round(end_t, 3),
+                "duration": round(end_t - start_t, 3)
             })
-
-        if beats:
-            # Scale sum to precisely match total_duration
-            curr_total = sum(b["duration"] for b in beats)
-            if curr_total > 0:
-                scale = total_duration / curr_total
-                curr_t = 0.0
-                for b in beats:
-                    b["start"] = round(curr_t, 3)
-                    b["duration"] = round(b["duration"] * scale, 3)
-                    curr_t += b["duration"]
-                    b["end"] = round(curr_t, 3)
-                beats[-1]["end"] = round(total_duration, 3)
-                beats[-1]["duration"] = round(beats[-1]["end"] - beats[-1]["start"], 3)
-                return beats
+        return beats
 
     # 2. Word-count proportional calculation fallback
     word_counts = [max(1, len(s.split())) for s in clean_sentences]
@@ -118,7 +105,7 @@ def resolve_beat_visual_query(sentence_text: str, global_topic: str = "", beat_i
     combined = f"{text_lower} {topic_lower}"
 
     # 1. Motivation / Mindset / Struggle / Victory
-    is_motivational = any(k in combined for k in [
+    is_motivational = has_term(combined, [
         "தோல்வி", "வெற்றி", "விடாமுயற்சி", "உழைப்பு", "கனவு", "நம்பிக்கை",
         "எழுச்சி", "சிகரம்", "ஓடு", "தடை", "அடி", "கைவிடாதே", "வீரம்", "நெருப்பு",
         "discipline", "motivation", "unstoppable", "mindset", "success", "action",
@@ -178,7 +165,7 @@ def resolve_beat_visual_query(sentence_text: str, global_topic: str = "", beat_i
             return shots[(beat_idx) % len(shots)]
 
     # 2. Deep Space / Astronomy
-    is_space = any(k in combined for k in [
+    is_space = has_term(combined, [
         "space", "galaxy", "universe", "planet", "stars", "black hole", "cosmic", "mars",
         "விண்வெளி", "கிரகம்", "சூரியன்", "நிலா", "அண்டம்", "கருந்துளை"
     ])
@@ -193,7 +180,7 @@ def resolve_beat_visual_query(sentence_text: str, global_topic: str = "", beat_i
         return space_shots[(beat_idx) % len(space_shots)]
 
     # 3. Technology / AI / Coding / Cyber
-    is_tech = any(k in combined for k in [
+    is_tech = has_term(combined, [
         "tech", "technology", "drone", "computer", "coding", "software", "ai", "cyber", "robot",
         "தொழில்நுட்பம்", "கணினி", "ரோபோ", "செயற்கை நுண்ணறிவு"
     ])
@@ -208,15 +195,15 @@ def resolve_beat_visual_query(sentence_text: str, global_topic: str = "", beat_i
         return tech_shots[(beat_idx) % len(tech_shots)]
 
     # 4. Nature / Ocean / Ancient
-    if any(k in combined for k in ["கடல்", "ocean", "sea", "water", "waves"]):
+    if has_term(combined, ["கடல்", "ocean", "sea", "water", "waves"]):
         return "majestic turquoise ocean giant waves crashing dramatic aerial 4k vertical"
-    if any(k in combined for k in ["மலை", "mountain", "peak", "climb"]):
+    if has_term(combined, ["மலை", "mountain", "peak", "climb"]):
         return "epic misty mountain range sunrise clouds cinematic 4k vertical"
-    if any(k in combined for k in ["வரலாறு", "கோயில்", "சோழர்", "history", "ancient", "temple"]):
+    if has_term(combined, ["வரலாறு", "கோயில்", "சோழர்", "history", "ancient", "temple"]):
         return "ancient magnificent stone temple royal architecture golden hour vertical"
 
     # 5. Night / Sleep / Bedtime / Peace / Cozy
-    is_night = any(k in combined for k in [
+    is_night = has_term(combined, [
         "night", "sleep", "sleeping", "dream", "dreams", "bed", "rest", "calm", "moon", "moonlight",
         "starry", "stars", "good night", "peaceful", "quiet", "breathe", "இரவு", "தூக்கம்", "நிலவு"
     ])
@@ -238,7 +225,7 @@ def resolve_beat_visual_query(sentence_text: str, global_topic: str = "", beat_i
 
 
 def search_wikimedia_highres_image(query: str, used_urls: Optional[set] = None) -> Optional[str]:
-    """Search Wikimedia Commons for 100% public domain / CC high-res photography."""
+    """Search Wikimedia Commons for high-res photography that needs no attribution (public domain / CC0)."""
     # Strip modifier keywords to form clean natural search query
     clean_words = [
         w for w in re.sub(r'[^\w\s]', ' ', query).split()
@@ -251,7 +238,7 @@ def search_wikimedia_highres_image(query: str, used_urls: Optional[set] = None) 
     clean_q = urllib.parse.quote(search_term)
     api_url = (
         f"https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&"
-        f"gsrsearch={clean_q}&gsrnamespace=6&prop=imageinfo&iiprop=url|mime|size|width|height&gsrlimit=12"
+        f"gsrsearch={clean_q}&gsrnamespace=6&prop=imageinfo&iiprop=url|mime|size|width|height|extmetadata&gsrlimit=20"
     )
     headers = {"User-Agent": USER_AGENT}
     try:
@@ -260,7 +247,12 @@ def search_wikimedia_highres_image(query: str, used_urls: Optional[set] = None) 
             data = json.loads(resp.read().decode("utf-8"))
             pages = data.get("query", {}).get("pages", {})
             for _, page in pages.items():
+                if any(noise in page.get("title", "").lower() for noise in NEGATIVE_NOISE_TERMS):
+                    continue
                 for ii in page.get("imageinfo", []):
+                    license_name = ii.get("extmetadata", {}).get("LicenseShortName", {}).get("value", "").lower()
+                    if not license_name.startswith(NO_ATTRIBUTION_LICENSES):
+                        continue
                     mime = ii.get("mime", "")
                     if mime.startswith("image/jpeg") or mime.startswith("image/png"):
                         if ii.get("width", 0) >= 800:
@@ -274,64 +266,69 @@ def search_wikimedia_highres_image(query: str, used_urls: Optional[set] = None) 
     return None
 
 
+def _save_valid_image(url: str, out_image_path: Path, timeout: int) -> bool:
+    """Download url and keep it only if it decodes as a real image."""
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            content = resp.read()
+        if len(content) <= 15000:
+            return False
+        Image.open(io.BytesIO(content)).verify()
+        with open(out_image_path, "wb") as f:
+            f.write(content)
+        return True
+    except Exception:
+        return False
+
+
 def download_ai_keyframe_image(prompt: str, out_image_path: Path, width: int = 1080, height: int = 1920, used_urls: Optional[set] = None) -> bool:
     """
-    Downloads or synthesizes an ultra-crisp visual keyframe:
-    1. Queries Wikimedia Commons for verified 4K public-domain photography matching the beat.
-    2. Fallback to Pollinations AI generation with safe, clean prompts.
-    3. Emergency fallback to curated high-res nature photography.
-    Guarantees every shot gets a fresh, unique, high-resolution visual.
+    Downloads a visual keyframe that matches the beat:
+    1. Pollinations AI generation, which follows the prompt most closely.
+    2. Wikimedia Commons photography that needs no attribution.
+    Returns False rather than substituting an unrelated random photo.
     """
     out_image_path = Path(out_image_path)
     out_image_path.parent.mkdir(parents=True, exist_ok=True)
     seed = random.randint(1000, 999999)
-    headers = {"User-Agent": USER_AGENT}
 
-    # 1. Try Wikimedia Commons 4K photography
-    wiki_url = search_wikimedia_highres_image(prompt, used_urls=used_urls)
-    if wiki_url:
-        try:
-            req = urllib.request.Request(wiki_url, headers=headers)
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                content = resp.read()
-                if len(content) > 15000:
-                    with open(out_image_path, "wb") as f:
-                        f.write(content)
-                    return True
-        except Exception:
-            pass
-
-    # 2. Try Pollinations AI with safe sanitized prompt
     safe_words = [w for w in prompt.split() if w.lower() not in ["sprouting", "seedling", "soil", "glowing", "rich", "darkness"]]
-    clean_prompt = " ".join(safe_words[:8]) or "mountain sunrise dawn"
+    clean_prompt = " ".join(safe_words[:12]) or "mountain sunrise dawn"
     clean_p = urllib.parse.quote(f"cinematic photorealistic 8k, {clean_prompt}, natural lighting, masterpiece")
     poll_url = f"https://image.pollinations.ai/prompt/{clean_p}?width={width}&height={height}&seed={seed}&nologo=true"
+    if _save_valid_image(poll_url, out_image_path, timeout=45):
+        return True
+
+    wiki_url = search_wikimedia_highres_image(prompt, used_urls=used_urls)
+    return bool(wiki_url and _save_valid_image(wiki_url, out_image_path, timeout=15))
+
+
+def probe_duration(path: str) -> float:
+    """Clip length in seconds, or 0.0 if it cannot be read."""
     try:
-        req = urllib.request.Request(poll_url, headers=headers)
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            content = resp.read()
-            if len(content) > 15000:
-                with open(out_image_path, "wb") as f:
-                    f.write(content)
-                return True
+        res = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=True
+        )
+        return float(res.stdout.strip())
     except Exception:
-        pass
+        return 0.0
 
-    # 3. Emergency high-resolution photorealistic imagery
-    fallback_url = f"https://picsum.photos/{width}/{height}?random={seed}"
-    try:
-        req = urllib.request.Request(fallback_url, headers=headers)
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            content = resp.read()
-            if len(content) > 15000:
-                with open(out_image_path, "wb") as f:
-                    f.write(content)
-                return True
-    except Exception:
-        pass
 
-    return False
-
+def split_beats_into_shots(beats: List[Dict[str, Any]], max_shot: float = MAX_SHOT_SECONDS) -> List[Dict[str, Any]]:
+    """Divide each sentence beat into equal shots of at most max_shot seconds, marking the first of each beat."""
+    shots = []
+    for beat in beats:
+        count = max(1, math.ceil(beat["duration"] / max_shot))
+        for i in range(count):
+            shots.append({
+                "text": beat["text"],
+                "beat_index": beat.get("index", 1) - 1,
+                "duration": round(beat["duration"] / count, 3),
+                "starts_beat": i == 0
+            })
+    return shots
 
 
 def render_single_beat_clip(
@@ -362,15 +359,19 @@ def render_single_beat_clip(
             stock_candidate
             and os.path.isfile(stock_candidate)
             and os.path.getsize(stock_candidate) > 200000
-            and (used_videos is None or stock_candidate not in used_videos or len(used_videos) >= 4)
         ):
             if used_videos is not None:
                 used_videos.add(stock_candidate)
 
-            ss_offset = (beat_idx * 3) % 15
+            # Random in-point so a clip that must repeat still shows different footage
+            clip_len = probe_duration(stock_candidate)
+            ss_offset = round(random.uniform(0, max(0.0, clip_len - duration - 0.5)), 2)
+            # Oversize slightly, then drift the crop so no shot sits perfectly still
+            over_w, over_h = int(width * 1.12) // 2 * 2, int(height * 1.12) // 2 * 2
+            direction = 1 if beat_idx % 2 else -1
             crop_filter = (
-                f"scale={width}:{height}:force_original_aspect_ratio=increase,"
-                f"crop={width}:{height},setsar=1,"
+                f"scale={over_w}:{over_h}:force_original_aspect_ratio=increase,"
+                f"crop={width}:{height}:x='(iw-ow)/2+{direction}*50*(t/{duration:.3f}-0.5)':y='(ih-oh)/2',setsar=1,fps={fps},"
                 f"eq=contrast=1.03:brightness=-0.01"
             )
             cmd = [
@@ -418,7 +419,12 @@ def render_single_beat_clip(
             "ffmpeg", "-y",
             "-loop", "1",
             "-i", str(img_path),
-            "-vf", f"{zp},eq=contrast=1.04:saturation=1.03,format=yuv420p",
+            "-vf", (
+                # Fill 9:16 without squashing, oversampled so zoompan does not jitter
+                f"scale={width * 2}:{height * 2}:force_original_aspect_ratio=increase,"
+                f"crop={width * 2}:{height * 2},setsar=1,"
+                f"{zp},eq=contrast=1.04:saturation=1.03,format=yuv420p"
+            ),
             "-c:v", "libx264",
             "-preset", "fast",
             "-crf", "18",
@@ -460,45 +466,53 @@ def build_multi_beat_montage(
     boundaries: Optional[List[Dict[str, Any]]] = None,
     width: int = 1080,
     height: int = 1920,
-    visual_mode: str = "auto"
+    visual_mode: str = "auto",
+    visual_queries: Optional[List[str]] = None
 ) -> Any:
     """
     Master B-Roll Orchestrator:
-    1. Splits script into rhythmic visual beats synced to speech timestamps.
-    2. Renders a unique, non-repeating video clip for every single beat.
-    3. Stitches all clips seamlessly with FFmpeg xfade micro-transitions and unified color grading.
-    4. Returns (out_stitched_video, cut_timestamps).
+    1. Splits script into rhythmic visual beats synced to speech timestamps, then into shots of at most MAX_SHOT_SECONDS.
+    2. Renders a separate video clip for every shot, using visual_queries[beat] when the script supplies them.
+    3. Stitches all clips with FFmpeg xfade micro-transitions and unified color grading.
+    4. Returns (out_stitched_video, cut_timestamps), where cut_timestamps are the sentence changes that get a whoosh.
     """
     workspace_dir = Path(workspace_dir)
     workspace_dir.mkdir(parents=True, exist_ok=True)
     beats_dir = workspace_dir / "beat_clips"
     beats_dir.mkdir(parents=True, exist_ok=True)
 
+    reset_download_budget()
     beats = calculate_sentence_timings(sentences, total_duration, boundaries=boundaries)
     rendered_clips: List[Path] = []
     used_stock_videos: set = set()
     used_image_urls: set = set()
 
     # Pre-calculate cut timestamps and transition overlap
-    trans_dur = 0.25
+    trans_dur = 0.15
+    shots = split_beats_into_shots(beats)
+    shot_cuts: List[float] = []
     cut_timestamps: List[float] = []
     accum = 0.0
-    for beat in beats[:-1]:
-        accum += beat["duration"]
-        cut_timestamps.append(round(accum, 3))
+    for idx, shot in enumerate(shots[:-1]):
+        accum += shot["duration"]
+        shot_cuts.append(round(accum, 3))
+        if shots[idx + 1]["starts_beat"]:
+            cut_timestamps.append(round(accum, 3))
 
-    num_beats = len(beats)
-    print(f"🎬 [B-Roll Director] Assembling dynamic {num_beats}-shot visual montage for '{global_topic[:30]}'...")
+    num_shots = len(shots)
+    print(f"🎬 [B-Roll Director] Assembling dynamic {num_shots}-shot visual montage for '{global_topic[:30]}'...")
 
-    for idx, beat in enumerate(beats):
-        base_dur = beat["duration"]
+    for idx, shot in enumerate(shots):
+        base_dur = shot["duration"]
         # Extend duration by transition duration for all clips except the last for smooth xfade
-        render_dur = base_dur + trans_dur if (idx < num_beats - 1 and num_beats >= 2) else base_dur
-        sent = beat["text"]
-        query = resolve_beat_visual_query(sent, global_topic=global_topic, beat_idx=idx + 1)
+        render_dur = base_dur + trans_dur if idx < num_shots - 1 else base_dur
+        sent = shot["text"]
+        beat_index = shot["beat_index"]
+        supplied = visual_queries[beat_index] if visual_queries and beat_index < len(visual_queries) else None
+        query = supplied or resolve_beat_visual_query(sent, global_topic=global_topic, beat_idx=idx + 1)
         beat_out = beats_dir / f"beat_{idx+1:02d}.mp4"
 
-        print(f"   🎥 Beat {idx+1}/{num_beats} ({render_dur:.1f}s): \"{sent[:32]}...\" -> Query: \"{query[:36]}\"")
+        print(f"   🎥 Shot {idx+1}/{num_shots} ({render_dur:.1f}s): \"{sent[:32]}...\" -> Query: \"{query[:36]}\"")
         clip = render_single_beat_clip(
             query=query,
             duration=render_dur,
@@ -514,7 +528,7 @@ def build_multi_beat_montage(
 
     # 1. Attempt smooth xfade transition stitching with cinematic color grading
     xfade_done = False
-    if len(rendered_clips) >= 2 and all(b["duration"] >= 0.65 for b in beats):
+    if len(rendered_clips) >= 2 and all(shot["duration"] > trans_dur for shot in shots):
         try:
             inputs = []
             for c in rendered_clips:
@@ -525,8 +539,10 @@ def build_multi_beat_montage(
             for i in range(len(rendered_clips) - 1):
                 next_in = f"[{i+1}:v]"
                 out_stream = f"[vx_{i+1}]" if i < len(rendered_clips) - 2 else "[vx_last]"
-                offset = cut_timestamps[i]
-                fc.append(f"{prev_stream}{next_in}xfade=transition=fadefast:duration={trans_dur}:offset={offset}{out_stream}")
+                offset = shot_cuts[i]
+                # A vertical move marks a new sentence; cuts inside a sentence stay quick and invisible
+                transition = "smoothup" if shots[i + 1]["starts_beat"] else "fadefast"
+                fc.append(f"{prev_stream}{next_in}xfade=transition={transition}:duration={trans_dur}:offset={offset}{out_stream}")
                 prev_stream = out_stream
 
             # Unified subtle cinematic optical grading (contrast 1.04, saturation 1.05)
@@ -547,7 +563,7 @@ def build_multi_beat_montage(
             subprocess.run(cmd_xfade, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
             if out_stitched_video.exists() and out_stitched_video.stat().st_size > 10000:
                 xfade_done = True
-                print(f"   ✨ Applied smooth xfade micro-transitions across {len(cut_timestamps)} cuts")
+                print(f"   ✨ Applied smooth xfade micro-transitions across {len(shot_cuts)} cuts")
         except Exception as e:
             xfade_done = False
 

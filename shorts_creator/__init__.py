@@ -5,8 +5,12 @@ Shotcraft recipe physics, developer codebase 'brag' showcases, digital talking a
 and studio EBU R128 audio mastering.
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __author__ = "Pravin"
+
+from .fonts import register_bundled_fonts
+
+register_bundled_fonts()
 
 from .video_engine import assemble_shorts_video
 from .video_fetcher import get_open_source_video
