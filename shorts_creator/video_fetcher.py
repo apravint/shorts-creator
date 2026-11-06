@@ -195,6 +195,11 @@ KEYWORD_MAPPINGS = {
 }
 
 
+CATEGORY_PRIORITY = [
+    "space", "technology", "cyberpunk", "ancient", "ocean", "money", "fire", "nature", "motivation", "city", "rain"
+]
+
+
 def resolve_search_query(text: str) -> str:
     """Translates Tamil entities to English search anchors and sanitizes query."""
     if not text:
@@ -217,11 +222,15 @@ def resolve_search_query(text: str) -> str:
 
 
 def extract_search_category(text: str) -> str:
-    """Analyze English and Tamil text to select the best visual category."""
-    for cat, keywords in KEYWORD_MAPPINGS.items():
-        if has_term(text, keywords):
-            return cat
-    return "nature"
+    """
+    Analyze English and Tamil text to select the best visual category.
+    The category with the most matching keywords wins, so one mood word ("dark", "night")
+    cannot pull "dark rogue planet drifting in space" away from space footage.
+    """
+    scores = {cat: sum(1 for kw in keywords if has_term(text, [kw])) for cat, keywords in KEYWORD_MAPPINGS.items()}
+    # On a tie the concrete subject wins over mood and setting categories ("galaxy ... night sky" is space)
+    best = max(CATEGORY_PRIORITY, key=lambda cat: (scores.get(cat, 0), -CATEGORY_PRIORITY.index(cat)))
+    return best if scores.get(best, 0) > 0 else "nature"
 
 
 def search_wikimedia_videos(query: str) -> List[str]:
@@ -375,9 +384,13 @@ def get_open_source_video(
         if related_cached:
             return random.choice(related_cached)
 
-    # 5. Nothing new is available: the caller's random in-point makes a repeat look different
-    same_cat = [
-        os.path.join(CACHE_DIR, f) for f in os.listdir(CACHE_DIR)
-        if f.lower().startswith(cat) and f.lower().endswith((".mp4", ".mov", ".webm"))
-    ]
-    return random.choice(same_cat) if same_cat else None
+    # 5. Nothing new is available: repeat on-topic footage first (the caller's random in-point
+    # makes a repeat look different), then related footage, before giving up
+    for candidate_cat in relaxed_categories:
+        repeats = [
+            os.path.join(CACHE_DIR, f) for f in os.listdir(CACHE_DIR)
+            if f.lower().startswith(candidate_cat) and f.lower().endswith((".mp4", ".mov", ".webm"))
+        ]
+        if repeats:
+            return random.choice(repeats)
+    return None

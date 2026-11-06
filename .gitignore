@@ -21,3 +21,6 @@ assets/bgm/*.mp3
 .venv/
 env/
 .DS_Store
+
+# Interrupted downloads
+*.part

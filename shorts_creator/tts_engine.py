@@ -6,6 +6,7 @@ Fallback: Google TTS (gTTS) - 100% reliable, zero-throttle backup for Tamil and 
 
 import os
 import json
+import time
 import asyncio
 import subprocess
 from typing import Dict, Any, List, Optional
@@ -14,6 +15,8 @@ try:
     from gtts import gTTS
 except ImportError:
     gTTS = None
+
+EDGE_TTS_ATTEMPTS = 3
 
 # Verified active voices
 VOICE_MAP = {
@@ -220,7 +223,7 @@ async def try_edge_tts_with_boundaries(
                 pass
         return success, boundaries
     except Exception as e:
-        print(f"[Info] Edge-TTS notice: {e}. Switching to gTTS fallback.")
+        print(f"[Info] Edge-TTS notice: {e}")
         if os.path.exists(output_audio):
             try:
                 os.remove(output_audio)
@@ -289,9 +292,16 @@ def generate_voiceover(
         eff_pitch = "+1Hz"
 
     # 1. Try Edge-TTS with millisecond word boundary capture
-    success, boundaries = asyncio.run(
-        try_edge_tts_with_boundaries(text, resolved_voice, audio_path, rate=eff_rate, pitch=eff_pitch)
-    )
+    # The Edge endpoint drops connections now and then; a short retry keeps the neural voice
+    success, boundaries = False, []
+    for attempt in range(EDGE_TTS_ATTEMPTS):
+        if attempt:
+            time.sleep(2 * attempt)
+        success, boundaries = asyncio.run(
+            try_edge_tts_with_boundaries(text, resolved_voice, audio_path, rate=eff_rate, pitch=eff_pitch)
+        )
+        if success:
+            break
 
     # 2. Seamless Fallback to gTTS if Edge-TTS failed or throttled
     engine_used = "Edge-TTS"
