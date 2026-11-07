@@ -5,6 +5,7 @@ with intelligent audio sidechain ducking and EBU R128 loudness normalization.
 """
 
 import os
+import json
 import math
 import wave
 import struct
@@ -191,32 +192,55 @@ class SoundscapeEngine:
             mix_sources.append("[sfx]")
 
         fc_parts.append(
-            f"{''.join(mix_sources)}amix=inputs={len(mix_sources)}:duration=first:dropout_transition=2:normalize=0,"
-            f"loudnorm=I=-14:TP=-1.5:LRA=9[outa]"
+            f"{''.join(mix_sources)}amix=inputs={len(mix_sources)}:duration=first:dropout_transition=2:normalize=0[outa]"
         )
 
         filter_complex = ";".join(fc_parts)
+        mix_path = work_dir / "premaster_mix.wav"
         cmd = [
             "ffmpeg", "-y",
             *inputs,
             "-filter_complex", filter_complex,
             "-map", "[outa]",
             "-t", f"{duration:.3f}",
-            "-c:a", "aac",
-            "-b:a", "320k",
             "-ar", "48000",
-            str(output_path)
+            str(mix_path)
         ]
 
         try:
             subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
-            return output_path
+            source = mix_path
         except subprocess.CalledProcessError as e:
             # Narration-only master keeps the render alive, but the lost music and SFX must be visible
             print(f"[Warning] Audio mix failed, using narration only: {(e.stderr or '').strip()[-400:]}")
-            subprocess.run(
-                ["ffmpeg", "-y", "-i", str(narration_path), "-af", "loudnorm=I=-14:TP=-1.5:LRA=9",
-                 "-c:a", "aac", "-b:a", "320k", "-ar", "48000", str(output_path)],
-                check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            source = Path(narration_path)
+        SoundscapeEngine.master_loudness(source, output_path)
+        return output_path
+
+    @staticmethod
+    def master_loudness(source: Union[str, Path], output_path: Union[str, Path]) -> Path:
+        """
+        Two-pass EBU R128 normalization to the Shorts target of -14 LUFS.
+        Single-pass loudnorm runs dynamically and, held back by the true-peak ceiling,
+        lands a couple of LU short; the measured second pass reaches the target.
+        """
+        target = "I=-14:TP=-1.5:LRA=11"
+        encode = ["-c:a", "aac", "-b:a", "320k", "-ar", "48000", str(output_path)]
+        measure = subprocess.run(
+            ["ffmpeg", "-y", "-i", str(source), "-af", f"loudnorm={target}:print_format=json", "-f", "null", "-"],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True
+        )
+        try:
+            stats = json.loads(measure.stderr[measure.stderr.rindex("{"):measure.stderr.rindex("}") + 1])
+            second_pass = (
+                f"loudnorm={target}:linear=true:measured_I={stats['input_i']}:measured_TP={stats['input_tp']}:"
+                f"measured_LRA={stats['input_lra']}:measured_thresh={stats['input_thresh']}:"
+                f"offset={stats['target_offset']}"
             )
-            return output_path
+        except (ValueError, KeyError):
+            second_pass = f"loudnorm={target}"
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", str(source), "-af", second_pass, *encode],
+            check=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+        return Path(output_path)

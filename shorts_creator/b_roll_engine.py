@@ -20,7 +20,7 @@ from typing import List, Dict, Any, Optional
 from PIL import Image
 
 from .text_match import has_term
-from .video_fetcher import get_open_source_video, reset_download_budget, NEGATIVE_NOISE_TERMS, TAMIL_TO_ENGLISH_MAP
+from .video_fetcher import get_open_source_video, extract_search_category, reset_download_budget, NEGATIVE_NOISE_TERMS, TAMIL_TO_ENGLISH_MAP
 
 USER_AGENT = "ShortsCreatorAI/2.0 (https://github.com/apravint/shorts-creator; apravint@gmail.com)"
 
@@ -341,7 +341,8 @@ def render_single_beat_clip(
     fps: int = 30,
     used_videos: Optional[set] = None,
     used_images: Optional[set] = None,
-    visual_mode: str = "auto"
+    visual_mode: str = "auto",
+    global_topic: str = ""
 ) -> Path:
     """
     Renders an individual beat clip tailored to its exact duration:
@@ -354,7 +355,12 @@ def render_single_beat_clip(
 
     # 1. Try real open-source stock video for 'stock' and 'auto' modes
     if visual_mode in ("stock", "auto"):
-        stock_candidate = get_open_source_video(query_or_topic=query, exclude_paths=used_videos)
+        # The topic joins the shot query so the category reflects the whole video, not one phrase
+        stock_candidate = get_open_source_video(
+            query_or_topic=query,
+            preferred_category=extract_search_category(f"{query} {query} {global_topic}"),
+            exclude_paths=used_videos
+        )
         if (
             stock_candidate
             and os.path.isfile(stock_candidate)
@@ -522,7 +528,8 @@ def build_multi_beat_montage(
             height=height,
             used_videos=used_stock_videos,
             used_images=used_image_urls,
-            visual_mode=visual_mode
+            visual_mode=visual_mode,
+            global_topic=global_topic
         )
         rendered_clips.append(clip)
 

@@ -13,6 +13,7 @@ from shorts_creator.subtitle_gen import clean_caption_word, get_word_emoji, buil
 from shorts_creator.text_match import has_term
 from shorts_creator.tts_engine import try_edge_tts_with_boundaries
 from shorts_creator.video_engine import build_progress_bar_graph
+from shorts_creator.video_fetcher import extract_search_category
 from shorts_creator.web import is_servable_video
 
 
@@ -42,6 +43,24 @@ class TestAudioMix(unittest.TestCase):
             self.assertEqual(codec, "aac")
 
 
+class TestLoudness(unittest.TestCase):
+    def test_master_reaches_shorts_target(self):
+        with tempfile.TemporaryDirectory() as d:
+            quiet, out = os.path.join(d, "quiet.wav"), os.path.join(d, "out.aac")
+            subprocess.run(
+                ["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=300:duration=6",
+                 "-af", "volume=0.05", quiet],
+                check=True
+            )
+            SoundscapeEngine.master_loudness(quiet, out)
+            report = subprocess.run(
+                ["ffmpeg", "-i", out, "-af", "ebur128=framelog=quiet", "-f", "null", "-"],
+                capture_output=True, text=True
+            ).stderr
+            integrated = float(report.rsplit("I:", 1)[1].split("LUFS")[0])
+            self.assertAlmostEqual(integrated, -14.0, delta=1.0)
+
+
 class TestWordBoundaries(unittest.IsolatedAsyncioTestCase):
     async def test_word_boundaries_are_requested_from_edge_tts(self):
         # edge-tts 7.x defaults to SentenceBoundary, which discarded the neural voice for gTTS
@@ -49,6 +68,30 @@ class TestWordBoundaries(unittest.IsolatedAsyncioTestCase):
             with tempfile.TemporaryDirectory() as d, patch("builtins.print"):
                 await try_edge_tts_with_boundaries("hello there", "en-US-GuyNeural", os.path.join(d, "a.mp3"))
         self.assertEqual(comm.call_args.kwargs.get("boundary"), "WordBoundary")
+
+
+class TestEdgeRetry(unittest.TestCase):
+    def test_transient_edge_failure_is_retried_before_gtts(self):
+        attempts = []
+
+        async def flaky(text, voice, path, rate="+0%", pitch="+0Hz"):
+            attempts.append(1)
+            if len(attempts) == 1:
+                return False, []
+            with open(path, "wb") as f:
+                f.write(b"0" * 9000)
+            return True, [{"word": "hi", "start": 0.0, "end": 0.5}]
+
+        with tempfile.TemporaryDirectory() as d, \
+                patch("shorts_creator.tts_engine.try_edge_tts_with_boundaries", side_effect=flaky), \
+                patch("shorts_creator.tts_engine.synthesize_with_gtts") as gtts, \
+                patch("shorts_creator.tts_engine.get_audio_duration", return_value=1.0), \
+                patch("shorts_creator.tts_engine.time.sleep"):
+            from shorts_creator.tts_engine import generate_voiceover
+            result = generate_voiceover("hi", lang="en", output_dir=d)
+        self.assertEqual(len(attempts), 2)
+        gtts.assert_not_called()
+        self.assertIn("Edge-TTS", result["voice"])
 
 
 class TestMontageTiming(unittest.TestCase):
@@ -96,6 +139,10 @@ class TestTextRules(unittest.TestCase):
         self.assertFalse(has_term("heavy rain on the mountain", ["ai"]))
         self.assertTrue(has_term("how ai works", ["ai"]))
         self.assertTrue(has_term("தமிழ்நாட்டில்", ["தமிழ்"]))
+
+    def test_category_follows_the_strongest_match(self):
+        self.assertEqual(extract_search_category("dark rogue planet drifting in space"), "space")
+        self.assertEqual(extract_search_category("milky way galaxy from earth night sky"), "space")
 
     def test_template_choice_ignores_substrings(self):
         self.assertEqual(
